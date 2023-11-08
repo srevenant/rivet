@@ -63,12 +63,12 @@ defmodule Rivet.Migration.Manage do
         [base: true]
       else
         []
-      end ++ [module: parts.name.migration, version: parts.ver]
+      end ++ [version: parts.ver, module: parts.name.migration]
 
     opts =
       Map.take(cfg, [:app, :base, :base_path, :models_root, :tests_root])
       |> Map.merge(%{
-        c_base: parts.name.model,
+        c_mod: parts.name.model,
         c_name: parts.base,
         c_index: parts.ver
       })
@@ -82,7 +82,10 @@ defmodule Rivet.Migration.Manage do
         [mig | migs]
         |> Enum.sort(fn a, b -> Keyword.get(a, :version) >= Keyword.get(b, :version) end)
 
-      File.write!(index, inspect(migs, pretty: true))
+      mig_alias = "#{parts.name.model}.Migrations"
+      mig_code = inspect(migs, pretty: true) |> String.replace(mig_alias, "M")
+
+      File.write!(index, "alias #{parts.name.model}.Migrations, as: M\n#{mig_code}")
     end
   end
 
@@ -94,16 +97,18 @@ defmodule Rivet.Migration.Manage do
   %{base: "Doctest", name: %{migration: Rivet.Email.Template.Migrations.Doctest, model: "Rivet.Email.Template"}, path: %{migration: "priv/rivet/migrations/template/doctest.exs", migrations: "priv/rivet/migrations/template", model: "../rivet_email/lib/email/template"}, ver: 2000}
   """
   def module_parts(model, label, ver, cfg) do
-    model_name =
+    model_parts =
       case String.split(modulename(model), ".") do
         [one] ->
-          "#{cfg.base}.#{one}"
+          Module.concat(cfg.base, one)
 
         [_ | _] = mod ->
-          Enum.join(mod, ".")
+          Module.concat(mod)
       end
+      |> Module.split()
 
-    model_path = Module.concat([model_name]) |> Module.split() |> List.last() |> pathname()
+    model_path = model_parts |> List.last() |> pathname()
+    model_name = Enum.join(model_parts, ".")
 
     base = modulename(label)
     mig_name = Module.concat([model_name, "Migrations", base])

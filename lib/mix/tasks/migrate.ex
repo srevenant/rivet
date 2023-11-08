@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Rivet.Migrate do
 
   @defaults [
     all: true,
-    log: false,
+    log: :info,
     log_migrations_sql: false,
     log_migrator_sql: false
   ]

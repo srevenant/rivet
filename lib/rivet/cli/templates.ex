@@ -45,7 +45,7 @@ defmodule Rivet.Cli.Templates do
   def migration(opts), do: migration_template(opts)
 
   embed_template(:migration, """
-  defmodule <%= @c_base %>.Migrations.<%= @c_name %> do
+  defmodule <%= @c_mod %>.Migrations.<%= @c_name %> do
     @moduledoc false
     use Ecto.Migration
 

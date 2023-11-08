@@ -53,7 +53,6 @@ defmodule Rivet.Ecto.Collection.Model do
 
       defoverridable build: 1
 
-
       def changeset(item, attrs) do
         item
         |> cast(attrs, @update_allowed_fields)
