@@ -38,9 +38,9 @@ defmodule Rivet.Ecto.Collection.One do
       def one(x, preload \\ [])
 
       if Keyword.get(opts, :id_type, :uuid) == :uuid do
-        def one(id, preload) when is_binary(id), do: inner_one([id: id], [])
+        def one(id, preload) when is_binary(id), do: inner_one([id: id], preload)
       else
-        def one(id, preload) when is_integer(id), do: inner_one([id: id], [])
+        def one(id, preload) when is_integer(id), do: inner_one([id: id], preload)
       end
 
       def one(other, preload), do: inner_one(other, preload)
