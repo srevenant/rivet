@@ -125,6 +125,7 @@ defmodule Rivet.Loader do
 
         name =
           case data do
+            %{id: id} -> [id: id]
             %{name: name} -> [name: name]
             %{label: label} -> [name: label]
             _ -> []
