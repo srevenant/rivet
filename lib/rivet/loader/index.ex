@@ -123,15 +123,15 @@ defmodule Rivet.Loader do
       {module, :create, 1} ->
         state = debug(state, "=> MODEL #{inspect(module)}")
 
-        name =
+        claims =
           case data do
             %{id: id} -> [id: id]
             %{name: name} -> [name: name]
-            %{label: label} -> [name: label]
+            %{label: label} -> [label: label]
             _ -> []
           end
 
-        with {:ok, _, state} <- upsert_record(state, module, data, name), do: {:ok, state}
+        with {:ok, _, state} <- upsert_record(state, module, data, claims), do: {:ok, state}
     end
   end
 
