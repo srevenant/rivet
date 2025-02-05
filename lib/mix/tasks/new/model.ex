@@ -122,52 +122,6 @@ defmodule Mix.Tasks.Rivet.New.Model do
   end
 
   def run(optcfg, _, _) do
-    syntax(optcfg, "model {model_name}")
+    syntax(optcfg, "mix rivet.new model {model_name} [opts]")
   end
-
-  # ################################################################################
-  # def syntax(_opts \\ nil) do
-  #   cmd = Rivet.Utils.Cli.task_cmd(__MODULE__)
-  #
-  #   IO.puts(:stderr, """
-  #   Syntax: mix #{cmd} model {path/to/model_folder (singular)} [options]
-  #   Syntax: mix #{cmd} mig|migration {path/to/model_folder (singular)} {migration_name} [options]
-  #
-  #   Options:
-  #   """)
-  #
-  #   list_options(@switches, @aliases, @switch_info)
-  # end
-  #
-  # ## todo: bring in app defaults
-  # def list_options(switches, aliases, info \\ []) do
-  #   # invert aliases
-  #   aliases =
-  #     Map.new(aliases)
-  #     |> Enum.reduce(%{}, fn {k, v}, acc ->
-  #       Map.update(acc, v, [k], fn as -> [k | as] end)
-  #     end)
-  #
-  #   # switches as strings for sorting
-  #   Enum.map(switches, fn {k, _} -> to_string(k) end)
-  #   |> Enum.sort()
-  #   |> list_options(Map.new(switches), aliases, Map.new(info))
-
-  # def list_options([option | rest], switches, aliases, info) do
-  #   key = String.to_atom(option)
-  #   list_option(String.replace(option, "_", "-"), key, switches[key], aliases[key], info[key])
-  #   list_options(rest, switches, aliases, info)
-  # end
-  #
-  # def list_options([], _, _, _), do: :ok
-  #
-  # def list_option(opt, _optkey, :boolean, _aliases, info) do
-  #   {a, b} = if info[:default] == true, do: {"", "no-"}, else: {"no-", ""}
-  #   # TODO: how does python list boolean defaults
-  #   IO.puts(:stderr, "  --#{a}#{opt}|--#{b}#{opt}")
-  # end
-  #
-  # def list_option(opt, _optkey, [type, :keep], _aliases, _info) do
-  #   IO.puts(:stderr, "  --#{opt}=#{to_string(type) |> String.upcase()}")
-  # end
 end
