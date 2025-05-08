@@ -83,8 +83,8 @@ defmodule Mix.Tasks.Rivet.List do
       Enum.each(migs, fn mig ->
         indent = if mig.base == true, do: "** ", else: "   "
         index = pad(mig.index, 18)
-        pre = slice(index, 0..3)
-        ver = slice(index, 4..-1)
+        pre = slice(index, 0..3//1)
+        ver = slice(index, 4..-1//1)
 
         IO.puts(
           "#{indent}#{pre} #{ver} #{pad(mig.model, model_x, " ")}  #{pad(mig.module, module_x, " ")} -> #{mig.path}"
