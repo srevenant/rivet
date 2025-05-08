@@ -14,6 +14,17 @@ defmodule Rivet.Ecto.Collection do
   `foreign_keys: [:field, ...]` - list of foreign key constraints (if any)
   `unique: [:field, ...]` — list of unique constraints (if any)
 
+  recap:
+
+  * `create:` ONLY on create, but is still optional (default: :id)
+  * `required:` MUST exist on create, and at the intersection of required and update, those values must also exist
+  * `update:` things that can be updated
+
+
+
+
+
+
   Note: fk and unique may also be tuple: {:key, [keyword-list options]}
   """
 

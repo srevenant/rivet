@@ -2,6 +2,7 @@ defmodule Rivet.Loader do
   alias Rivet.Loader.State
   import Rivet.Loader.Tools
   import Rivet.Utils.Cli.Print
+  require Logger
 
   @callback load_data(meta :: State.t(), data :: map()) :: {:ok | :error, meta :: State.t()}
   @callback load_deferred(meta :: State.t(), data :: map()) :: {:ok | :error, meta :: State.t()}
@@ -16,7 +17,7 @@ defmodule Rivet.Loader do
 
   def load_print_log(fname, opts \\ []) do
     with {ok?, %{log: log}} <- load_file(fname, opts) do
-      IO.puts(log)
+      Logger.info(log)
       ok?
     end
   end
@@ -24,7 +25,7 @@ defmodule Rivet.Loader do
   def load_file(fname, opts \\ []) do
     case find_load_file(fname) do
       {:error, reason} ->
-        IO.puts(:stderr, reason)
+        Logger.error(reason)
         {:error, %{log: [reason]}}
 
       {:ok, path} ->
