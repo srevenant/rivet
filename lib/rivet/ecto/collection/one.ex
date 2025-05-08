@@ -8,6 +8,8 @@ defmodule Rivet.Ecto.Collection.One do
         @type id :: integer
       end
 
+      @not_found Keyword.get(opts, :not_found, "Nothing found")
+
       ##########################################################################
       @spec one!(id | keyword() | Ecto.Query.t(), preload :: list()) :: nil | @model.t()
       def one!(x, preload \\ [])
@@ -47,7 +49,7 @@ defmodule Rivet.Ecto.Collection.One do
 
       defp inner_one(clauses, preload) when is_list(clauses) do
         case @repo.one(from(@model, where: ^clauses, preload: ^preload)) do
-          nil -> {:error, "Nothing found"}
+          nil -> {:error, @not_found}
           result -> {:ok, result}
         end
       rescue
@@ -56,7 +58,7 @@ defmodule Rivet.Ecto.Collection.One do
 
       defp inner_one(query, preload) do
         case @repo.one(from(query, preload: ^preload)) do
-          nil -> {:error, "Nothing found"}
+          nil -> {:error, @not_found}
           result -> {:ok, result}
         end
       rescue
