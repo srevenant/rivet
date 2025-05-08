@@ -30,11 +30,14 @@ defmodule Rivet.Graphql do
   @doc """
   iex> ok_as_list({:error, "Nothing found"})
   {:ok, []}
+  iex> ok_as_list({:error, :not_found})
+  {:ok, []}
   iex> ok_as_list({:ok, :narf})
   {:ok, [:narf]}
   iex> ok_as_list({:error, :narf})
   {:error, :narf}
   """
+  def ok_as_list({:error, :not_found}), do: {:ok, []}
   def ok_as_list({:error, "Nothing found"}), do: {:ok, []}
   def ok_as_list({:ok, result}), do: {:ok, [result]}
   def ok_as_list(pass), do: pass

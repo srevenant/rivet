@@ -8,7 +8,7 @@ defmodule Rivet.Ecto.Collection.One do
         @type id :: integer
       end
 
-      @not_found Keyword.get(opts, :not_found, "Nothing found")
+      @not_found if Keyword.get(opts, :not_found, :atom) == :atom, do: :not_found, else: "Nothing found"
 
       ##########################################################################
       @spec one!(id | keyword() | Ecto.Query.t(), preload :: list()) :: nil | @model.t()
