@@ -55,7 +55,7 @@ defmodule Rivet.MixProject do
       {:ex_machina, "~> 2.7", only: :test},
       {:excoveralls, "~> 0.14", only: :test},
       {:mix_test_watch, "~> 1.0", only: [:test, :dev], runtime: false},
-      {:postgrex, "~> 0.13", only: [:test]},
+      {:postgrex, "~> 0.20", only: [:test]},
       {:rivet_utils, "~> 2.0.3"},
       {:transmogrify, "~> 2.0.2"},
       {:typed_ecto_schema, "~> 0.3.0 or ~> 0.4.1"},
