@@ -8,7 +8,7 @@ defmodule Rivet.Ecto.Collection.One do
         @type id :: integer
       end
 
-      if Keyword.get(opts, :not_found, :atom) == :atom do
+      if Keyword.get(opts, :not_found, :string) == :atom do
         @not_found :not_found
       else
         @not_found "Nothing found"

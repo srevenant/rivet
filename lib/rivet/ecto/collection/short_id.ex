@@ -4,7 +4,7 @@ defmodule Rivet.Ecto.Collection.ShortId do
       if :short_id in Keyword.get(opts, :features, []) do
         import Rivet.Utils.Codes, only: [stripped_uuid: 1, get_shortest: 4]
 
-        if Keyword.get(opts, :not_found, :atom) == :atom do
+        if Keyword.get(opts, :not_found, :string) == :atom do
           @not_found :not_found
         else
           @not_found "Nothing found"

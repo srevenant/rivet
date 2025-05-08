@@ -80,7 +80,12 @@ defmodule Rivet.Graphql do
   iex> error_string({:nobody, :expects})
   "unexpected error, see logs"
   """
-  @std_errors %{authn: "Unauthenticated", authz: "Unauthorized", args: "Invalid Arguments"}
+  @std_errors %{
+    authn: "Unauthenticated",
+    authz: "Unauthorized",
+    args: "Invalid Arguments",
+    not_found: "Nothing found"
+  }
   def error_string(errs) when is_list(errs) do
     Enum.map(errs, &error_string/1)
     |> Enum.join(",")
