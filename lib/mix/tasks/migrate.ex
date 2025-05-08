@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Rivet.Migrate do
 
           for repo <- repos do
             ensure_repo(repo, args)
-            pool = repo.config[:pool]
+            pool = repo.config()[:pool]
 
             fun =
               if Code.ensure_loaded?(pool) and function_exported?(pool, :unboxed_run, 2) do

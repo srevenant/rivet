@@ -57,7 +57,7 @@ defmodule Rivet.Migration do
   This.Module
   """
   def module_pop(mod),
-    do: Module.split(mod) |> Enum.slice(0..-2//1) |> Module.concat()
+    do: Module.split(mod) |> List.delete_at(-1) |> Module.concat()
 
   @doc """
   iex> pad("x", 4)
@@ -122,7 +122,7 @@ defmodule Rivet.Migration do
       {:error, "Cannot find file '#{path}'"}
     end
   rescue
-    error ->
+    error in SyntaxError ->
       {:error, "Cannot load file '#{path}': #{error.description}"}
   end
 end
