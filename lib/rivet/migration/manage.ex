@@ -134,7 +134,7 @@ defmodule Rivet.Migration.Manage do
   defp get_include_prefix(%{prefix: prefix}, x, y) when is_binary(prefix) do
     case Transmogrify.As.as_int(prefix) do
       {:ok, num} -> {:ok, num, x, y}
-      {:error, reason} -> {:error, "Invalid include prefix #{prefix}: #{reason}"}
+      :error -> {:error, "Invalid include prefix #{prefix}"}
     end
   end
 
