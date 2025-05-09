@@ -8,6 +8,9 @@ defmodule Rivet.Ecto.Collection.One do
         @type id :: integer
       end
 
+      # define here too because dialyzer wasn't liking it being within the
+      # if conditional, so this resolves dialyzer errors
+      @not_found "Nothing found"
       if Keyword.get(opts, :not_found, :string) == :atom do
         @not_found :not_found
       else
