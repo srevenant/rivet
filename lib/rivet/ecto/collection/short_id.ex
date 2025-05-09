@@ -5,8 +5,10 @@ defmodule Rivet.Ecto.Collection.ShortId do
         import Rivet.Utils.Codes, only: [stripped_uuid: 1, get_shortest: 4]
 
         if Keyword.get(opts, :not_found, :string) == :atom do
+          @error_spec {:error, atom()}
           @not_found :not_found
         else
+          @error_spec {:error, String.t()}
           @not_found "Nothing found"
         end
 
@@ -32,7 +34,7 @@ defmodule Rivet.Ecto.Collection.ShortId do
         # Type:
         # {:error, <<_::104>>} | {:ok, _}
         @dialyzer {:nowarn_function, find_short_id: 2}
-        @spec find_short_id(String.t(), any()) :: {:ok, @model.t()} | {:error, String.t() | atom()}
+        @spec find_short_id(String.t(), any()) :: {:ok, @model.t()} | @error_spec
         def find_short_id(id, preload \\ []) do
           with {:error, _} <- one([short_id: String.downcase(id)], preload),
                {:error, %Ecto.Query.CastError{type: :binary_id}} <- one([id: id], preload) do
