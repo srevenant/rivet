@@ -3,14 +3,12 @@ defmodule Rivet.Ecto.Collection.ShortId do
     quote location: :keep, bind_quoted: [opts: opts] do
       if :short_id in Keyword.get(opts, :features, []) do
         import Rivet.Utils.Codes, only: [stripped_uuid: 1, get_shortest: 4]
-        #
-        # if Keyword.get(opts, :not_found, :string) == :atom do
-        #   @type one_error :: {:error, atom()}
-        #   @not_found :not_found
-        # else
-        #   @type one_error :: {:error, String.t()}
-        #   @not_found "Nothing found"
-        # end
+
+        if Keyword.get(opts, :not_found, :string) == :atom do
+          @not_found :not_found
+        else
+          @not_found "Nothing found"
+        end
 
         ##########################################################################
         # TODO: perhaps update these models to accept changing ID
