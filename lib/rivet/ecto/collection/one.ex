@@ -10,10 +10,11 @@ defmodule Rivet.Ecto.Collection.One do
 
       # define here too because dialyzer wasn't liking it being within the
       # if conditional, so this resolves dialyzer errors
-      @not_found "Nothing found"
       if Keyword.get(opts, :not_found, :string) == :atom do
+        @error_spec {:error, atom()}
         @not_found :not_found
       else
+        @error_spec {:error, String.t()}
         @not_found "Nothing found"
       end
 
@@ -43,7 +44,7 @@ defmodule Rivet.Ecto.Collection.One do
 
       ##########################################################################
       @spec one(id | keyword() | Ecto.Query.t(), preload :: list()) ::
-              {:ok, @model.t()} | {:error, String.t()}
+              {:ok, @model.t()} | @error_spec
       def one(x, preload \\ [])
 
       if Keyword.get(opts, :id_type, :uuid) == :uuid do
