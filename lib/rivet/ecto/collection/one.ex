@@ -9,10 +9,11 @@ defmodule Rivet.Ecto.Collection.One do
       end
 
       if Keyword.get(opts, :not_found, :string) == :atom do
-        @type one_error :: {:error, atom()}
+        # map is Ecto.Query.CastError, but that has no type
+        @type one_error :: {:error, atom() | map()}
         @not_found :not_found
       else
-        @type one_error :: {:error, String.t()}
+        @type one_error :: {:error, String.t() | map()}
         @not_found "Nothing found"
       end
 
@@ -41,8 +42,7 @@ defmodule Rivet.Ecto.Collection.One do
       end
 
       ##########################################################################
-      @spec one(id | keyword() | Ecto.Query.t(), preload :: list()) ::
-              {:ok, @model.t()} | one_error | {:error, Ecto.Query.CastError.t()}
+      @spec one(id | keyword() | Ecto.Query.t(), preload :: list()) :: {:ok, @model.t()} | one_error
       def one(x, preload \\ [])
 
       if Keyword.get(opts, :id_type, :uuid) == :uuid do

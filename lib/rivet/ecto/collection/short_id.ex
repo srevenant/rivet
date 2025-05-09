@@ -15,7 +15,6 @@ defmodule Rivet.Ecto.Collection.ShortId do
         end
 
         ##########################################################################
-        # @spec find_short_id(String.t(), any()) :: {:ok, @model.t()} | one_error
         def find_short_id(id, preload \\ []) do
           with {:error, _} <- one([short_id: String.downcase(id)], preload),
                {:error, %Ecto.Query.CastError{type: :binary_id}} <- one([id: id], preload) do
