@@ -32,7 +32,7 @@ defmodule Rivet.Ecto.Collection.ShortId do
         # Type:
         # {:error, <<_::104>>} | {:ok, _}
         @dialyzer {:nowarn_function, find_short_id: 2}
-        @spec find_short_id(String.t(), any()) :: {:ok, @model.t()} | {:error, String.t()}
+        @spec find_short_id(String.t(), any()) :: {:ok, @model.t()} | {:error, String.t() | atom()}
         def find_short_id(id, preload \\ []) do
           with {:error, _} <- one([short_id: String.downcase(id)], preload),
                {:error, %Ecto.Query.CastError{type: :binary_id}} <- one([id: id], preload) do
