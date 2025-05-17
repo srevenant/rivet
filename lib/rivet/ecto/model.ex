@@ -6,6 +6,7 @@ defmodule Rivet.Ecto.Model do
 
   * `id_type: :uuid` (default) or: :intid, :none
   * `export_json: [:field, ...]` — becomes `@derive {Jason.Encoder, [fields...]}`
+  * `debug: true` — will print out some compile-time information for debugging
   """
 
   defmacro __using__(opts) do

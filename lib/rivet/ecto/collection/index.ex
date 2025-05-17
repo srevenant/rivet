@@ -13,6 +13,7 @@ defmodule Rivet.Ecto.Collection do
                             create fields.
   `foreign_keys: [:field, ...]` - list of foreign key constraints (if any)
   `unique: [:field, ...]` — list of unique constraints (if any)
+  `debug: true` — will print out some compile-time information for debugging
 
   recap:
 
@@ -77,6 +78,7 @@ defmodule Rivet.Ecto.Collection do
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
+      @behaviour Rivet.Ecto.Collection
       @rivet_debug Keyword.get(opts, :debug, false)
 
       if @rivet_debug do
