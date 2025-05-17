@@ -14,19 +14,11 @@ defmodule Rivet.Ecto.Collection.Model do
 
   @spec validate_unique_constraints(Ecto.Changeset.t(), [{term(), keyword()} | term()]) ::
           Ecto.Changeset.t()
-  def validate_unique_constraints(chgset, [{key, opts} | rest]) do
-    IO.inspect({key, opts, chgset}, label: "unique_constraint/2")
-    unique_constraint(chgset, key, opts)
-    |> IO.inspect(label: "AFTER/2")
-    |> validate_unique_constraints(rest)
-  end
+  def validate_unique_constraints(chgset, [{key, opts} | rest]),
+    do: unique_constraint(chgset, key, opts) |> validate_unique_constraints(rest)
 
-  def validate_unique_constraints(chgset, [key | rest]) do
-    IO.inspect({key, chgset}, label: "unique_constraint/1")
-    unique_constraint(chgset, key)
-    |> IO.inspect(label: "AFTER/1")
-    |> validate_unique_constraints(rest)
-  end
+  def validate_unique_constraints(chgset, [key | rest]),
+    do: unique_constraint(chgset, key) |> validate_unique_constraints(rest)
 
   def validate_unique_constraints(chgset, []), do: chgset
   # coveralls-ignore-end
@@ -70,11 +62,8 @@ defmodule Rivet.Ecto.Collection.Model do
       def build(params \\ %{}) do
         %__MODULE__{}
         |> cast(params, @create_allowed_fields)
-        |> IO.inspect(label: "after build cast")
         |> create_validate()
-        |> IO.inspect(label: "after build create_validate hook")
         |> validate()
-        |> IO.inspect(label: "after build validate hook")
       end
 
       defoverridable build: 1
@@ -144,7 +133,6 @@ defmodule Rivet.Ecto.Collection.Model do
 
         @foreign_keys == [] ->
           def validate(%Ecto.Changeset{} = chgset) do
-            IO.inspect(@unique_constraints, label: "UN?")
             chgset
             |> validate_required(@required_fields)
             |> validate_unique_constraints(@unique_constraints)
