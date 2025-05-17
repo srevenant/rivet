@@ -149,6 +149,7 @@ defmodule Rivet.Ecto.Collection.Model do
 
         true ->
           def validate(%Ecto.Changeset{} = chgset) do
+            IO.inspect(@unique_constraints, label: "UN?")
             chgset
             |> validate_required(@required_fields)
             |> validate_foreign_keys(@foreign_keys)
