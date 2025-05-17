@@ -77,6 +77,10 @@ defmodule Rivet.Ecto.Collection do
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
+      if @rivet_debug do
+        IO.inspect([model: __MODULE__, opts: opts], label: "Rivet.Ecto.Collection")
+      end
+
       use Rivet.Ecto.Collection.Context, opts
       use Rivet.Ecto.Collection.Model, opts
       use Rivet.Ecto.Collection.All, opts
