@@ -70,8 +70,11 @@ defmodule Rivet.Ecto.Collection.Model do
       def build(params \\ %{}) do
         %__MODULE__{}
         |> cast(params, @create_allowed_fields)
+        |> IO.inspect(label: "after build cast")
         |> create_validate()
+        |> IO.inspect(label: "after build create_validate hook")
         |> validate()
+        |> IO.inspect(label: "after build validate hook")
       end
 
       defoverridable build: 1

@@ -7,6 +7,7 @@ defmodule Rivet.Ecto.Collection.Create do
         with {:ok, attrs} <- @model.change_prep(nil, attrs) do
           attrs
           |> @model.build()
+          |> IO.inspect(label: "after create build")
           |> @repo.insert()
           |> @model.create_post(attrs)
           |> @model.change_post(attrs)
