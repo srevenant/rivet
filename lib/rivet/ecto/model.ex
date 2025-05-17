@@ -25,7 +25,7 @@ defmodule Rivet.Ecto.Model do
       end
 
       if @rivet_debug do
-        IO.inspect({opts, @rivet_id_type, @primary_key, @primary_key_type}, label: "Rivet.Ecto.Model")
+        IO.inspect([model: __MODULE__, opts: opts, id_type: @rivet_id_type, primary_key: @primary_key], label: "Rivet.Ecto.Model")
       end
 
       if Keyword.get(opts, :export_json, []) != [] do
