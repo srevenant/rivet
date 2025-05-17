@@ -10,6 +10,7 @@ defmodule Rivet.Ecto.Model do
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
+      @rivet_debug Keyword.get(opts, :debug, false)
       case Keyword.get(opts, :id_type, :uuid) do
         :uuid ->
           @rivet_id_type :uuid
@@ -21,6 +22,10 @@ defmodule Rivet.Ecto.Model do
         :intid -> :ok
           @rivet_id_type :intid
         x -> raise "Invalid Rivet id_type '#{inspect(x)}', not one of: :uuid, :intid, or :none"
+      end
+
+      if @rivet_debug do
+        IO.inspect({opts, @rivet_id_type, @primary_key, @primary_key_type}, label: "Rivet.Ecto.Model")
       end
 
       if Keyword.get(opts, :export_json, []) != [] do
