@@ -15,14 +15,14 @@ defmodule Rivet.Ecto.Collection.Model do
   @spec validate_unique_constraints(Ecto.Changeset.t(), [{term(), keyword()} | term()]) ::
           Ecto.Changeset.t()
   def validate_unique_constraints(chgset, [{key, opts} | rest]) do
-    IO.inspect({key, opts, chgset}, label: "unique_constraint")
+    IO.inspect({key, opts, chgset}, label: "unique_constraint/2")
     unique_constraint(chgset, key, opts)
     |> IO.inspect(label: "AFTER/2")
     |> validate_unique_constraints(rest)
   end
 
   def validate_unique_constraints(chgset, [key | rest]) do
-    IO.inspect({key, chgset}, label: "unique_constraint")
+    IO.inspect({key, chgset}, label: "unique_constraint/1")
     unique_constraint(chgset, key)
     |> IO.inspect(label: "AFTER/1")
     |> validate_unique_constraints(rest)
