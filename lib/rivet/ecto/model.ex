@@ -16,16 +16,24 @@ defmodule Rivet.Ecto.Model do
           @rivet_id_type :uuid
           @primary_key {:id, :binary_id, autogenerate: true}
           @foreign_key_type :binary_id
+
         :none ->
           @rivet_id_type :none
           @primary_key false
-        :intid -> :ok
+
+        :intid ->
+          :ok
           @rivet_id_type :intid
-        x -> raise "Invalid Rivet id_type '#{inspect(x)}', not one of: :uuid, :intid, or :none"
+
+        x ->
+          raise "Invalid Rivet id_type '#{inspect(x)}', not one of: :uuid, :intid, or :none"
       end
 
       if @rivet_debug do
-        IO.inspect([model: __MODULE__, opts: opts, id_type: @rivet_id_type, primary_key: @primary_key], label: "Rivet.Ecto.Model")
+        IO.inspect(
+          [model: __MODULE__, opts: opts, id_type: @rivet_id_type, primary_key: @primary_key],
+          label: "Rivet.Ecto.Model"
+        )
       end
 
       if Keyword.get(opts, :export_json, []) != [] do

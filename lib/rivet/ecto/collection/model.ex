@@ -32,18 +32,32 @@ defmodule Rivet.Ecto.Collection.Model do
       @update_allowed_fields Keyword.get(opts, :update, []) |> Enum.uniq()
 
       if @rivet_id_type == :none do
-          @create_allowed_fields (Keyword.get(opts, :create, []) ++
-                                    @required_fields ++ @update_allowed_fields)
-                                 |> Enum.uniq()
+        @create_allowed_fields (Keyword.get(opts, :create, []) ++
+                                  @required_fields ++ @update_allowed_fields)
+                               |> Enum.uniq()
       else
-          @create_allowed_fields (Keyword.get(opts, :create, [:id]) ++
-                                    @required_fields ++ @update_allowed_fields)
-                                 |> Enum.uniq()
+        @create_allowed_fields (Keyword.get(opts, :create, [:id]) ++
+                                  @required_fields ++ @update_allowed_fields)
+                               |> Enum.uniq()
       end
 
       @foreign_keys Keyword.get(opts, :foreign_keys, []) |> Enum.uniq()
       @unique_constraints Keyword.get(opts, :unique, Keyword.get(opts, :unique_constraints, []))
                           |> Enum.uniq()
+
+      if @rivet_debug do
+        IO.inspect(
+          [
+            model: __MODULE__,
+            required: @required_fields,
+            update: @update_allowed_fields,
+            create: @create_allowed_fields,
+            foreign_keys: @foreign_keys,
+            unique: @unique_constraints
+          ],
+          label: "Rivet.Ecto.Collection"
+        )
+      end
 
       def build(params \\ %{}) do
         %__MODULE__{}
