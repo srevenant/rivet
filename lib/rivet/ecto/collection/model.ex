@@ -45,6 +45,20 @@ defmodule Rivet.Ecto.Collection.Model do
       @unique_constraints Keyword.get(opts, :unique, Keyword.get(opts, :unique_constraints, []))
                           |> Enum.uniq()
 
+      if @rivet_debug do
+        IO.inspect(
+          [
+            model: __MODULE__,
+            required: @required_fields,
+            update: @update_allowed_fields,
+            create: @create_allowed_fields,
+            foreign_keys: @foreign_keys,
+            unique: @unique_constraints
+          ],
+          label: "Rivet.Ecto.Collection"
+        )
+      end
+
       def build(params \\ %{}) do
         %__MODULE__{}
         |> cast(params, @create_allowed_fields)

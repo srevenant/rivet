@@ -104,8 +104,8 @@ defmodule Rivet.Migration do
   @doc """
   iex> load_data_file("nar")
   {:error, "Cannot find file 'nar'"}
-  iex> load_data_file("test/rivet_test_input")
-  {:error, "Cannot load file 'test/rivet_test_input': Invalid contents"}
+  iex> load_data_file("test/support/rivet_test_input")
+  {:error, "Cannot load file 'test/support/rivet_test_input': Invalid contents"}
 
   # force an error
   iex> load_data_file("LICENSE.txt")

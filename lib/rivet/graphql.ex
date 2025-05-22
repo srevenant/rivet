@@ -42,6 +42,9 @@ defmodule Rivet.Graphql do
   def ok_as_list({:ok, result}), do: {:ok, [result]}
   def ok_as_list(pass), do: pass
 
+  @doc """
+  Easy parser to connect Absinthe scalers with EctoEnum.
+  """
   def parse_enum(%{value: value}, enum) do
     enum.cast(value)
   end
@@ -79,6 +82,15 @@ defmodule Rivet.Graphql do
   "narf"
   iex> error_string({:nobody, :expects})
   "unexpected error, see logs"
+  iex> error_string({:error, "narf"})
+  "narf"
+
+  iex> err = RivetTestLib.Yoink.build(%{name: :nope})
+  iex> error_string(err)
+  "name is invalid"
+  iex> error_string({:error, err})
+  "name is invalid"
+
   """
   @std_errors %{
     authn: "Unauthenticated",
@@ -133,6 +145,8 @@ defmodule Rivet.Graphql do
   {:ok, %{narf: 100, success: true}}
   iex> graphql_status_result({:error, :authz})
   {:ok, %{reason: "Unauthorized", success: false}}
+  iex> graphql_status_result({:error, "narf", a: :b})
+  {:ok, %{success: false, reason: "narf"}}
   """
   def graphql_status_result(state, key \\ nil)
 

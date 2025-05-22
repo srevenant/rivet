@@ -6,10 +6,12 @@ defmodule Rivet.Ecto.Model do
 
   * `id_type: :uuid` (default) or: :intid, :none
   * `export_json: [:field, ...]` — becomes `@derive {Jason.Encoder, [fields...]}`
+  * `debug: true` — will print out some compile-time information for debugging
   """
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
+      @rivet_debug Keyword.get(opts, :debug, false)
       case Keyword.get(opts, :id_type, :uuid) do
         :uuid ->
           @rivet_id_type :uuid
@@ -26,6 +28,13 @@ defmodule Rivet.Ecto.Model do
 
         x ->
           raise "Invalid Rivet id_type '#{inspect(x)}', not one of: :uuid, :intid, or :none"
+      end
+
+      if @rivet_debug do
+        IO.inspect(
+          [model: __MODULE__, opts: opts, id_type: @rivet_id_type, primary_key: @primary_key],
+          label: "Rivet.Ecto.Model"
+        )
       end
 
       if Keyword.get(opts, :export_json, []) != [] do
