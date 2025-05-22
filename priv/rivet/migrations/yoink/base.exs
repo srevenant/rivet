@@ -6,6 +6,7 @@ defmodule RivetTestLib.Yoink.Migrations.Base do
     create table(:yoinks, primary_key: false) do
       add(:id, :uuid, primary_key: true)
       add(:name, :string)
+      add(:object, :string)
       timestamps()
     end
   end
