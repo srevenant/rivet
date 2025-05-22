@@ -32,7 +32,7 @@ defmodule Rivet.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      env: [],
+      env: [rivet: [app: :rivet]],
       mod: {Rivet.Application, []}
     ]
   end

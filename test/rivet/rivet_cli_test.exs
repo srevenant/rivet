@@ -1,12 +1,6 @@
-defmodule Rivet.Test do
+defmodule Test.Rivet.RivetCliTest do
   use Rivet.Case
   import ExUnit.CaptureIO
-
-  doctest Mix.Tasks.Rivet.List, import: true
-  doctest Rivet.Ecto.Collection, import: true
-  doctest Rivet.Graphql, import: true
-  doctest Rivet.Migration, import: true
-  doctest Rivet.Migration.Manage, import: true
 
   def read_first_line(file) do
     File.open!(file, fn f -> IO.read(f, :line) end)

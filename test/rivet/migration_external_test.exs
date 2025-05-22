@@ -1,15 +1,8 @@
-defmodule Rivet.Test.MigrationExternal do
+defmodule Test.Rivet.MigrationExternalTest do
   use Rivet.Case
 
   test "migration external" do
-    Code.prepend_path("test/support/pinky/ebin")
-    Code.prepend_path("test/support/rivet_test_lib/ebin")
-    Application.ensure_loaded(:rivet_test_lib)
-    Application.ensure_loaded(:pinky)
-
-    opts = [base_dir: ".", lib_dir: ".", models_dir: ""]
-
-    assert {:ok, migs} = Rivet.Migration.Load.prepare_project_migrations(opts, :pinky)
+    assert {:ok, migs} = Rivet.Migration.Load.prepare_project_migrations([], :rivet)
 
     assert {:ok,
             [

@@ -42,7 +42,8 @@ defmodule Rivet.Ecto.Collection.One do
       end
 
       ##########################################################################
-      @spec one(id | keyword() | Ecto.Query.t(), preload :: list()) :: {:ok, @model.t()} | one_error
+      @spec one(id | keyword() | Ecto.Query.t(), preload :: list()) ::
+              {:ok, @model.t()} | one_error
       def one(x, preload \\ [])
 
       if Keyword.get(opts, :id_type, :uuid) == :uuid do
