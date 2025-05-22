@@ -50,7 +50,7 @@ defmodule Rivet.Ecto.Collection.Update do
                   with {:ok, changes} <- change_prep(item, changes) do
                     id = item.id
 
-                    from(s in __MODULE__, where: s.id == ^id)
+                    from(s in __MODULE__, select: s, where: s.id == ^id)
                     |> atomic_add_asserts(assert, Map.keys(changing))
                     |> atomic_run_update(id, changes, assert, Map.get(item, :updated_at))
                     |> @model.change_post(changes)
@@ -88,7 +88,7 @@ defmodule Rivet.Ecto.Collection.Update do
               {:error, "Assertion Missing key: #{key}"}
 
             value ->
-              from(s in query, select: s, where: field(s, ^key) == ^value)
+              from(s in query, where: field(s, ^key) == ^value)
               |> atomic_add_asserts(assert, rest)
           end
         end
