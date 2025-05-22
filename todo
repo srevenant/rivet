@@ -1,2 +1,0 @@
-mix rivet new model {name} should work. problems:
-- subfolders not done right; should handle 'Core.Db' but not make db_ prefix on tables and names.

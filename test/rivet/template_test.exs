@@ -1,4 +1,4 @@
-defmodule Rivet.TemplateTest do
+defmodule Test.Rivet.TemplateTest do
   use Rivet.Case, async: true
   import ExUnit.CaptureLog
 

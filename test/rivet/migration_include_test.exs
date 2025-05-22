@@ -1,15 +1,9 @@
-defmodule Rivet.Test.MigrationInclude do
+defmodule Test.Rivet.MigrationIncludeTest do
   use Rivet.Case
 
   test "migration include" do
-    Code.prepend_path("test/support/pinky/ebin")
-    Application.ensure_loaded(:pinky)
-
-    opts = [lib_dir: "", models_dir: ""]
-
-    cfg = [app: :pinky]
-    Application.put_env(:pinky, :rivet, cfg)
-
+    opts = []
+    cfg = [app: :rivet]
     assert {:ok, rivet_cfg} = Rivet.Config.build(opts, cfg)
 
     assert {:ok, model_cfg} =
@@ -18,7 +12,7 @@ defmodule Rivet.Test.MigrationInclude do
 
     state = %{idx: %{}, mods: %{}}
 
-    narf_path = Application.app_dir(:pinky, "priv/rivet/migrations/pinky/narf.exs")
+    narf_path = Application.app_dir(:rivet, "priv/rivet/migrations/pinky/narf.exs")
 
     assert {:ok,
             %{

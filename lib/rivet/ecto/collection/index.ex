@@ -3,7 +3,8 @@ defmodule Rivet.Ecto.Collection do
   # For data models using Ecto. Options:
 
   `id_type: :uuid, :intid, :none` — how to handle record ID
-  `features: [:short_id]` — enable/disable ShortId
+  `features: [...]`       — a list of atoms as features, including:
+              :short_id   — enable/disable ShortId
   `required: [:field, ...]` — list of fields required for this model
   `update: [:field, ...]` — list of fields allowed to be updated on this model
   `create: [:field, ...]` — list of additional fields allowed only on creation.
@@ -11,22 +12,21 @@ defmodule Rivet.Ecto.Collection do
                             concatenated to required and update. This defaults
                             to `[:id]`, so specify it as `[]` for no additional
                             create fields.
+  `atomic: [:field, ...]` — if included the fields will be used when doing a
+                            conditional/atomic update with `assert: %{}` as
+                            an optional argument to update()
   `foreign_keys: [:field, ...]` - list of foreign key constraints (if any)
   `unique: [:field, ...]` — list of unique constraints (if any)
   `debug: true` — will print out some compile-time information for debugging
 
-  recap:
+  Note:fk and unique may also be tuple: {:key, [keyword-list options]}
+
+  Recap:
 
   * `create:` ONLY on create, but is still optional (default: :id)
-  * `required:` MUST exist on create, and at the intersection of required and update, those values must also exist
+  * `required:` MUST exist on create, and at the intersection of required and
+     update, those values must also exist
   * `update:` things that can be updated
-
-
-
-
-
-
-  Note: fk and unique may also be tuple: {:key, [keyword-list options]}
   """
 
   import Ecto.Query, only: [from: 2]

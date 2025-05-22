@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Rivet.New.Migration do
   import Rivet.Utils.Cli.Print
   alias Rivet.Migration
 
-  # ignore-coveralls-start
+  # coveralls-ignore-start
   def run(optcfg, opts, [model, label]) do
     with {:ok, cfg} <- Mix.Tasks.Rivet.New.get_config(optcfg, opts),
          :ok <- Migration.Manage.add_migration(model, label, cfg) do
@@ -17,5 +17,5 @@ defmodule Mix.Tasks.Rivet.New.Migration do
     syntax(optcfg, "mix rivet.new migration {model} {label} [opts]")
   end
 
-  # ignore-coveralls-end
+  # coveralls-ignore-end
 end
