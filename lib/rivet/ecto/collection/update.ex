@@ -40,18 +40,18 @@ defmodule Rivet.Ecto.Collection.Update do
               {:ok, item}
 
             %{valid?: true, changes: changes} = chgset ->
-              case Map.take(changes, @rivet_atomic) do
-                changing when map_size(changing) == 0 ->
+              case Map.take(assert, @rivet_atomic) do
+                asserting when map_size(asserting) == 0 ->
                   # just use normal update
                   @repo.update(chgset)
 
-                changing ->
+                asserting ->
                   # variant of normal update
                   with {:ok, changes} <- change_prep(item, changes) do
                     id = item.id
 
                     from(s in __MODULE__, select: s, where: s.id == ^id)
-                    |> atomic_add_asserts(assert, Map.keys(changing))
+                    |> atomic_add_asserts(Map.to_list(asserting))
                     |> atomic_run_update(id, changes, assert, Map.get(item, :updated_at))
                     |> @model.change_post(changes)
                   end
@@ -82,18 +82,12 @@ defmodule Rivet.Ecto.Collection.Update do
         end
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-        defp atomic_add_asserts(query, assert, [key | rest]) do
-          case Map.get(assert, key) do
-            nil ->
-              {:error, "Assertion Missing key: #{key}"}
-
-            value ->
-              from(s in query, where: field(s, ^key) == ^value)
-              |> atomic_add_asserts(assert, rest)
-          end
+        defp atomic_add_asserts(query, [{key, value} | rest]) do
+          from(s in query, where: field(s, ^key) == ^value)
+          |> atomic_add_asserts(rest)
         end
 
-        defp atomic_add_asserts(query, _, []), do: query
+        defp atomic_add_asserts(query, []), do: query
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         defp atomic_add_updated_at(changes, nil), do: changes
