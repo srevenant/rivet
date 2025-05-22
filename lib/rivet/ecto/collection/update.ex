@@ -70,8 +70,8 @@ defmodule Rivet.Ecto.Collection.Update do
           changes = atomic_add_updated_at(changes, updated_at) |> Map.to_list()
 
           case @repo.update_all(query, set: changes) do
-            {1, [server]} ->
-              {:ok, server}
+            {1, [item]} ->
+              {:ok, item}
 
             {x, _} when x > 1 ->
               {:error, {:too_many, x}}
