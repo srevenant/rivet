@@ -32,12 +32,13 @@ defmodule Rivet.Ecto.Collection do
   import Ecto.Query, only: [from: 2]
 
   @callback validate(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  @callback validate_post(Ecto.Changeset.t()) :: Ecto.Changeset.t()
   @callback build(params :: map()) :: Ecto.Changeset.t()
   @callback changeset(item :: map(), params :: map()) :: Ecto.Changeset.t()
   @callback change_prep(item :: map(), changes :: map()) :: {:ok, map()}
-  @callback change_post(item :: map(), changes :: map()) :: map()
+  @callback change_post({status :: atom(), item :: map()}, changes :: map()) :: {atom(), map()}
   @callback create_prep(item :: map(), changes :: map()) :: {:ok, map()}
-  @callback create_post(item :: map(), changes :: map()) :: map()
+  @callback create_post({status :: atom(), item :: map()}, changes :: map()) :: {atom(), map()}
   @callback delete(item :: map()) :: {:ok | :error, Ecto.Changeset.t() | map()}
 
   @optional_callbacks validate: 1,
