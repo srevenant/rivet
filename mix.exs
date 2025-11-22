@@ -4,8 +4,8 @@ defmodule Rivet.MixProject do
   def project do
     [
       app: :rivet,
-      version: "2.6.1",
-      elixir: "~> 1.14",
+      version: "2.7.1",
+      elixir: "~> 1.18",
       description: "Elixir data model framework library",
       source_url: "https://github.com/srevenant/rivet",
       docs: [main: "Rivet"],
@@ -47,19 +47,19 @@ defmodule Rivet.MixProject do
 
   defp deps do
     [
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:ecto_enum, "~> 1.0"},
-      {:ecto_sql, "~> 3.9"},
-      {:timex, "~> 3.7"},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:ex_machina, "~> 2.7", only: :test},
-      {:excoveralls, "~> 0.14", only: :test},
-      {:mix_test_watch, "~> 1.0", only: [:test, :dev], runtime: false},
-      {:postgrex, "~> 0.20", only: [:test]},
-      {:rivet_utils, "~> 2.0.3"},
-      {:transmogrify, "~> 2.0.2"},
-      {:typed_ecto_schema, "~> 0.3.0 or ~> 0.4.1"},
-      {:yaml_elixir, "~> 2.8"}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ecto_enum, "~> 1.4"},
+      {:ecto_sql, "~> 3.13"},
+      {:timex, "~> 3.7", only: [:dev, :test]},
+      {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false},
+      {:ex_machina, "~> 2.8", only: :test},
+      {:excoveralls, "~> 0.18", only: :test},
+      {:mix_test_watch, "~> 1.4", only: :test, runtime: false},
+      {:postgrex, "~> 0.21", only: :test},
+      {:rivet_utils, "~> 2.0"},
+      {:transmogrify, "~> 2.0"},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:yaml_elixir, "~> 2.12"}
     ]
   end
 

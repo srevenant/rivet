@@ -54,29 +54,12 @@ defmodule Rivet.Ecto.Collection.General do
       end
 
       ##########################################################################
-      @dialyzer {:nowarn_function, [unload: 1]}
       def unload(item) do
-        @model.__schema__(:associations)
-        |> Enum.reduce(item, fn assoc, item -> unload(item, assoc) end)
+        assocs = @model.__schema__(:associations)
+        Ecto.reset_fields(item, assocs)
       end
 
-      @dialyzer {:nowarn_function, [unload: 2]}
-      def unload(item, assoc) do
-        %{
-          cardinality: cardinality,
-          field: field,
-          owner: owner
-        } = @model.__schema__(:association, assoc)
-
-        %{
-          item
-          | assoc => %Ecto.Association.NotLoaded{
-              __cardinality__: cardinality,
-              __field__: field,
-              __owner__: owner
-            }
-        }
-      end
+      def unload(item, assoc), do: Ecto.reset_fields(item, [assoc])
 
       ##########################################################################
       def reload(%@model{} = item) do
