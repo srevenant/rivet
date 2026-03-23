@@ -44,6 +44,7 @@ defmodule Rivet.Ecto.Collection.Model do
       @foreign_keys Keyword.get(opts, :foreign_keys, []) |> Enum.uniq()
       @unique_constraints Keyword.get(opts, :unique, Keyword.get(opts, :unique_constraints, []))
                           |> Enum.uniq()
+      @empty_values Keyword.get(opts, :empty_values, Ecto.Changeset.empty_values())
 
       if @rivet_debug do
         IO.inspect(
@@ -61,7 +62,7 @@ defmodule Rivet.Ecto.Collection.Model do
 
       def build(params \\ %{}) do
         %__MODULE__{}
-        |> cast(params, @create_allowed_fields)
+        |> cast(params, @create_allowed_fields, empty_values: @empty_values)
         |> create_validate()
         |> validate()
       end
@@ -70,7 +71,7 @@ defmodule Rivet.Ecto.Collection.Model do
 
       def changeset(item, attrs) do
         item
-        |> cast(attrs, @update_allowed_fields)
+        |> cast(attrs, @update_allowed_fields, empty_values: @empty_values)
         |> change_validate()
         |> validate()
       end
