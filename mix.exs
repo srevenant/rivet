@@ -13,11 +13,6 @@ defmodule Rivet.MixProject do
       deps: deps(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:mix],
@@ -34,6 +29,16 @@ defmodule Rivet.MixProject do
       extra_applications: [:logger],
       env: [rivet: [app: :rivet]],
       mod: {Rivet.Application, []}
+    ]
+  end
+
+  def cli do
+    [
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 

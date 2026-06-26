@@ -221,8 +221,8 @@ defmodule Rivet.Loader.Tools do
   end
 
   ##############################################################################
-  def defer(state, item) do
-    %State{state | deferred: [item | state.deferred]}
+  def defer(%State{} = state, item) do
+    %{state | deferred: [item | state.deferred]}
   end
 
   ##############################################################################
