@@ -13,11 +13,11 @@ defmodule Rivet.Ecto.Collection.Touch do
       end
 
       def touch(%{id: this_id, updated_at: updated}) do
-        now = System.monotonic_time(:second) + System.time_offset(:second)
+        now = System.system_time(:second)
 
-        if now - Timex.to_unix(updated) > @update_min_seconds do
+        if now - DateTime.to_unix(updated, :second) > @update_min_seconds do
           from(u in @model, where: u.id == ^this_id)
-          |> @repo.update_all(set: [updated_at: Timex.now()])
+          |> @repo.update_all(set: [updated_at: DateTime.from_unix!(now, :second)])
         end
       end
 
