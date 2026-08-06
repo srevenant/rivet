@@ -5,7 +5,7 @@ defmodule Rivet.Migration.Load do
   import Transmogrify
   use Rivet
 
-  @initial_state %{idx: %{}, mods: %{}}
+  defstruct idx: %{}, graph: nil
 
   defp module_loaded?(mod, file) do
     if Code.ensure_loaded?(mod) do
@@ -34,8 +34,8 @@ defmodule Rivet.Migration.Load do
   def prepare_project_migrations(opts, app) do
     config = config_build(opts, app)
 
-    with {:ok, %{idx: idx}} <- load_migrations_from_config(config),
-         do: {:ok, Map.keys(idx) |> Enum.sort() |> Enum.map(&idx[&1])}
+    with {:ok, %{graph: g, idx: idx}} <- load_migrations_from_config(config),
+         do: {:ok, :digraph_utils.topsort(g) |> Enum.map(&idx[&1])}
   end
 
   def to_ecto_migrations(migs) do
@@ -54,12 +54,13 @@ defmodule Rivet.Migration.Load do
   defp load_migrations_from_config(rivet_config) do
     rivet_dir = Application.app_dir(rivet_config.app, "priv/rivet/migrations")
     migfile = Path.join(rivet_dir, @migrations_file)
+    graph = :digraph.new([:acyclic, :private])
 
     if not File.exists?(migfile) do
       {:error, "Migrations file is missing (#{migfile})"}
     else
       with {:ok, mig_data} <- load_data_file(migfile),
-           do: load_project_migrations(@initial_state, mig_data, rivet_config)
+           do: load_project_migrations(%__MODULE__{graph: graph}, mig_data, rivet_config)
     end
   end
 
@@ -76,7 +77,7 @@ defmodule Rivet.Migration.Load do
          do: load_project_migrations(state, rest, config)
   end
 
-  defp load_project_migrations(%{idx: _, mods: _} = state, [], _), do: {:ok, state}
+  defp load_project_migrations(%{idx: _, graph: _} = state, [], _), do: {:ok, state}
 
   defp load_project_migrations({:error, _} = pass, _, _), do: pass
 
@@ -127,7 +128,7 @@ defmodule Rivet.Migration.Load do
 
   def merge_model_migrations({:ok, state}, mig, file, _) do
     with {:ok, includes} <- load_data_file(Path.join([mig.path, file])),
-         do: flatten_include(state, includes, mig)
+         do: flatten_include(state, Enum.sort_by(includes, & &1[:version]), mig)
   end
 
   def merge_model_migrations({:error, _} = pass, _, _, _), do: pass
@@ -136,18 +137,42 @@ defmodule Rivet.Migration.Load do
   # @spec flatten_include(rivet_migration_state(), list(map()), rivet_config()) ::
   #         rivet_state_result()
   defp flatten_include(state, [mig | rest], model_cfg) do
-    with {:ok, %{index: ver, module: mod} = mig} <- flatten_migration(model_cfg, Map.new(mig)) do
-      if Map.has_key?(state.idx, ver) or Map.has_key?(state.mods, mod) do
+    with {:ok, %{module: mod} = mig} <- flatten_migration(model_cfg, Map.new(mig)) do
+      if Map.has_key?(state.idx, mod) do
         IO.puts(:stderr, "Ignoring duplicate migration: #{inspect(Map.to_list(mig))}")
         state
       else
-        %{state | idx: Map.put(state.idx, ver, mig), mods: Map.put(state.mods, mod, [])}
+        :digraph.add_vertex(state.graph, mod, mig.parent)
+
+        if mig.after do
+          :digraph.add_vertex(state.graph, mig.after)
+          :digraph.add_edge(state.graph, mig.after, mod)
+        end
+
+        previous = latest_migration(state.graph, mig.parent)
+
+        if previous && previous != mod && previous != mig.after do
+          :digraph.add_edge(state.graph, previous, mod)
+        end
+
+        %{state | idx: Map.put(state.idx, mod, mig)}
       end
       |> flatten_include(rest, model_cfg)
     end
   end
 
   defp flatten_include(state, [], _) when is_map(state), do: {:ok, state}
+
+  defp latest_migration(graph, parent) do
+    :digraph.sink_vertices(graph)
+    |> Enum.find_value(fn vert ->
+      with {^vert, ^parent} <- :digraph.vertex(graph, vert) do
+        vert
+      else
+        _ -> nil
+      end
+    end)
+  end
 
   # # # # #
   # @spec flatten_migration(map(), rivet_migration_input_model()) ::
@@ -167,6 +192,8 @@ defmodule Rivet.Migration.Load do
          index: index,
          prefix: prefix,
          parent: as_module(include),
+         # Optional key.
+         after: mig[:after],
          module: module,
          path: "#{path}/#{pathname(module) |> Path.basename()}.exs"
        }}

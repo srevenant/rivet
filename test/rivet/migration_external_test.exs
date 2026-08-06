@@ -6,8 +6,8 @@ defmodule Test.Rivet.MigrationExternalTest do
 
     assert {:ok,
             [
-              {30_000_000_000_000_000, RivetTestLib.Yoink.Migrations.Base},
               {40_000_000_000_000_000, Pinky.Base},
+              {30_000_000_000_000_000, RivetTestLib.Yoink.Migrations.Base},
               {40_000_000_000_000_020, Pinky.Splat},
               {40_000_000_000_000_100, Pinky.Brain},
               {40_000_000_000_003_000, Pinky.Narf}
