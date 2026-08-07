@@ -137,27 +137,27 @@ defmodule Rivet.Migration.Load do
   # @spec flatten_include(rivet_migration_state(), list(map()), rivet_config()) ::
   #         rivet_state_result()
   defp flatten_include(state, [mig | rest], model_cfg) do
-    with {:ok, %{module: mod} = mig} <- flatten_migration(model_cfg, Map.new(mig)) do
-      if Map.has_key?(state.idx, mod) do
+    with {:ok, %{module: mod} = mig} <- flatten_migration(model_cfg, Map.new(mig)),
+         false <- Map.has_key?(state.idx, mod) do
+      :digraph.add_vertex(state.graph, mod, mig.parent)
+
+      if mig.after do
+        :digraph.add_vertex(state.graph, mig.after)
+        add_edge_or_die(state.graph, mig.after, mod)
+      end
+
+      previous = latest_migration(state.graph, mig.parent)
+
+      if previous && previous != mod && previous != mig.after do
+        add_edge_or_die(state.graph, previous, mod)
+      end
+
+      %{state | idx: Map.put(state.idx, mod, mig)}
+      |> flatten_include(rest, model_cfg)
+    else
+      true ->
         IO.puts(:stderr, "Ignoring duplicate migration: #{inspect(Map.to_list(mig))}")
         state
-      else
-        :digraph.add_vertex(state.graph, mod, mig.parent)
-
-        if mig.after do
-          :digraph.add_vertex(state.graph, mig.after)
-          :digraph.add_edge(state.graph, mig.after, mod)
-        end
-
-        previous = latest_migration(state.graph, mig.parent)
-
-        if previous && previous != mod && previous != mig.after do
-          :digraph.add_edge(state.graph, previous, mod)
-        end
-
-        %{state | idx: Map.put(state.idx, mod, mig)}
-      end
-      |> flatten_include(rest, model_cfg)
     end
   end
 
@@ -172,6 +172,21 @@ defmodule Rivet.Migration.Load do
         _ -> nil
       end
     end)
+  end
+
+  defp add_edge_or_die(g, prev, mod) do
+    case :digraph.add_edge(g, prev, mod) do
+      [_ | _] ->
+        :ok
+
+      {:error, {:bad_edge, path}} ->
+        cycle =
+          [mod | Enum.reverse(path)]
+          |> Enum.map(&modulename/1)
+          |> Enum.join(" -> ")
+
+        raise Ecto.MigrationError, "Module #{modulename(mod)} depends on itself: #{cycle}"
+    end
   end
 
   # # # # #
