@@ -71,8 +71,7 @@ defmodule Rivet.Migration.Load do
   #         rivet_state_result()
   defp load_project_migrations(state, [model_migration | rest], config)
        when is_list(model_migration) and is_map(state) do
-    with {:ok, state} <-
-           load_project_migration(Map.new(model_migration), state, config),
+    with {:ok, state} <- load_project_migration(Map.new(model_migration), state, config),
          do: load_project_migrations(state, rest, config)
   end
 
@@ -138,7 +137,7 @@ defmodule Rivet.Migration.Load do
   defp flatten_include(state, [mig | rest], model_cfg) do
     with {:ok, %{index: ver, module: mod} = mig} <- flatten_migration(model_cfg, Map.new(mig)) do
       if Map.has_key?(state.idx, ver) or Map.has_key?(state.mods, mod) do
-        IO.puts(:stderr, "Ignoring duplicate migration: #{inspect(Map.to_list(mig))}")
+        Logger.error("Ignoring duplicate migration: #{inspect(Map.to_list(mig))}")
         state
       else
         %{state | idx: Map.put(state.idx, ver, mig), mods: Map.put(state.mods, mod, [])}

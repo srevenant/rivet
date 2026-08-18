@@ -1,7 +1,6 @@
 defmodule Rivet.Loader do
   alias Rivet.Loader.State
   import Rivet.Loader.Tools
-  import Rivet.Utils.Cli.Print
   require Logger
 
   @callback load_data(meta :: State.t(), data :: map()) :: {:ok | :error, meta :: State.t()}
@@ -11,7 +10,8 @@ defmodule Rivet.Loader do
   # wraps load_file, but handles the error and dies
   def load_or_die(fname, opts \\ []) do
     with {:error, %{log: log}} <- load_file(fname, opts) do
-      die(log)
+      Logger.error(log)
+      exit({:shutdown, 1})
     end
   end
 
