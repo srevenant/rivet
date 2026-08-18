@@ -4,7 +4,7 @@ defmodule Rivet.MixProject do
   def project do
     [
       app: :rivet,
-      version: "2.7.3",
+      version: "2.7.4",
       elixir: "~> 1.18",
       description: "Elixir data model framework library",
       source_url: "https://github.com/srevenant/rivet",

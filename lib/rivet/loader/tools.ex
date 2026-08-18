@@ -241,7 +241,7 @@ defmodule Rivet.Loader.Tools do
     do: {:error, log(state, "!! " <> msg)}
 
   def abort(state, msg, data) when is_map(state) and is_binary(msg),
-    do: {:error, debug(Map.put(state, :debug, true), data, label: "!! " <> msg)}
+    do: {:error, debug(state, data, label: "!! " <> msg)}
 
   defp debug_inspect(data, label: label), do: label <> ": " <> inspect(data)
   defp debug_inspect(data, _), do: inspect(data)
