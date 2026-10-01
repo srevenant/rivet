@@ -25,7 +25,8 @@ defmodule Rivet.MixProject do
       ],
       elixirc_paths: elixirc_paths(Mix.env()),
       aliases: aliases(),
-      xref: [exclude: List.wrap(Application.get_env(:rivet, :repo))]
+      xref: [exclude: List.wrap(Application.get_env(:rivet, :repo))],
+      compilers: [:es6_maps | Mix.compilers()]
     ]
   end
 
@@ -50,11 +51,12 @@ defmodule Rivet.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ecto_enum, "~> 1.4"},
       {:ecto_sql, "~> 3.13"},
+      {:es6_maps, "~> 1.0.2"},
       {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:ex_machina, "~> 2.8", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:mix_test_watch, "~> 1.4", only: :test, runtime: false},
-      {:postgrex, "~> 0.21", only: :test},
+      {:postgrex, "~> 0.22.4"},
       {:rivet_utils, "~> 2.0"},
       {:transmogrify, "~> 2.0"},
       {:typed_ecto_schema, "~> 0.4"},
