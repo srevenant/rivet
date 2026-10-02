@@ -15,10 +15,12 @@ defmodule Rivet.Loader.Updates do
     case load_for(repo, opts) do
       {:ok, logs} ->
         log_lines(logs)
+        :ok
 
       {:error, msg, logs} ->
         log_lines(logs)
         Logger.error(msg, type: "seed")
+        :error
     end
   end
 
