@@ -14,7 +14,13 @@ defmodule Rivet.Loader.Tools do
 
   @spec find_load_file(fname :: binary()) :: {:ok | :error, path :: binary()}
   def find_load_file(fname) do
-    [fname, "../data/" <> fname, "/data/" <> fname, "../../../data/" <> fname, "priv/seeds/" <> fname]
+    [
+      fname,
+      "../data/" <> fname,
+      "/data/" <> fname,
+      "../../../data/" <> fname,
+      "priv/seeds/" <> fname
+    ]
     |> Enum.find(fn p ->
       case File.stat(p) do
         {:ok, _} -> true
