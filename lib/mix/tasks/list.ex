@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Rivet.List do
       {opts, ["migration"], _} -> list_migrations(opts)
       {opts, ["migrations"], _} -> list_migrations(opts)
       {_, _, []} -> syntax()
-      {_, _, errs} -> syntax(inspect(errs, label: "bad arguments"))
+      {_, _, errs} -> syntax(errs)
     end
   end
 
@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Rivet.List do
     """)
 
     if err do
-      IO.puts(:stderr, err)
+      IO.inspect(:stderr, err, label: "bad arguments")
     end
   end
 

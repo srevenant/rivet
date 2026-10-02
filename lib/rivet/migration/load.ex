@@ -111,7 +111,7 @@ defmodule Rivet.Migration.Load do
   # @spec prepare_model_config(rivet_migration_input_any(), rivet_config()) :: {:ok, Rivet.Migration.t()} | rivet_error()
   def prepare_model_config(%{include: modpath} = model_migration, %{app: app}) do
     priv_dir = Application.app_dir(app, ["priv/rivet/migrations", modpath])
-    {:ok, %Rivet.Migration{struct(Rivet.Migration, model_migration) | path: priv_dir}}
+    {:ok, %{struct(Rivet.Migration, model_migration) | path: priv_dir}}
   end
 
   ##############################################################################
