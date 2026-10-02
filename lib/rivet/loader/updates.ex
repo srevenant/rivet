@@ -22,7 +22,10 @@ defmodule Rivet.Loader.Updates do
     end
   end
 
-  defp log_lines(lines), do: Enum.each(lines, &Logger.info(&1, type: "seed"))
+  defp log_lines(lines) do
+    IO.inspect(lines)
+    Enum.each(lines, &Logger.info(&1, type: "seed"))
+  end
 
   defp load_seeds([seed | rest], repo, opts, logs) do
     with {:ok, logs} <- load_seed(seed, repo, opts, logs) do
@@ -30,7 +33,7 @@ defmodule Rivet.Loader.Updates do
     end
   end
 
-  defp load_seeds([], _, _, logs), do: {:ok, Enum.reverse(logs)}
+  defp load_seeds([], _, _, logs), do: {:ok, logs}
 
   ####
   defp load_seed(seed, repo, opts, logs) do
@@ -40,10 +43,10 @@ defmodule Rivet.Loader.Updates do
       if need_to_load?(xver, repo) do
         with {:ok, %{log: log}} <- Rivet.Loader.load_file(seed, opts),
              {:ok, _} <- update_migrations_record(xver, repo) do
-          {:ok, [normalize_logs(log) | logs]}
+          {:ok, logs ++ normalize_logs(log)}
         else
           {:error, %{log: log}} ->
-            {:error, "unable to continue", [normalize_logs(log) | logs]}
+            {:error, "unable to continue", logs ++ normalize_logs(log)}
         end
       else
         {:ok, logs}
@@ -78,7 +81,6 @@ defmodule Rivet.Loader.Updates do
     |> Enum.join("")
     |> String.split("\n")
     |> Enum.reject(fn x -> x == "" end)
-    |> Enum.reverse()
   end
 
   @seeds_base "rivet/seeds/*"
