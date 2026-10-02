@@ -13,11 +13,6 @@ defmodule Rivet.MixProject do
       deps: deps(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:mix],
@@ -26,6 +21,16 @@ defmodule Rivet.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       aliases: aliases(),
       xref: [exclude: List.wrap(Application.get_env(:rivet, :repo))]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
