@@ -24,10 +24,7 @@ defmodule Rivet.Loader.Updates do
     end
   end
 
-  defp log_lines(lines) do
-    IO.inspect(lines)
-    Enum.each(lines, &Logger.info(&1, type: "seed"))
-  end
+  defp log_lines(lines), do: Enum.each(lines, &Logger.info(&1, type: "seed"))
 
   defp load_seeds([seed | rest], repo, opts, logs) do
     with {:ok, logs} <- load_seed(seed, repo, opts, logs) do
