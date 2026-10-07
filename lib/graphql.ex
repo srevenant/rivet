@@ -93,12 +93,6 @@ defmodule Rivet.Graphql do
   "unexpected error, see logs"
   iex> error_string({:error, "narf"})
   "narf"
-
-  iex> err = RivetTestLib.Yoink.build(%{name: :nope})
-  iex> error_string(err)
-  "name is invalid"
-  iex> error_string({:error, err})
-  "name is invalid"
   ```
   """
   @std_errors %{

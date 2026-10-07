@@ -1,5 +1,5 @@
-defmodule Test.Rivet.RivetCliTest do
-  use Rivet.Case
+defmodule Rivet.Test.Cli.IndexTest do
+  use Rivet.Test.Case
   import ExUnit.CaptureIO
 
   def read_first_line(file) do

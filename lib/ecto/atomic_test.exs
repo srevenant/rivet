@@ -1,6 +1,6 @@
 defmodule Test.Rivet.Ecto.AtomicTest do
   use Rivet.Case, async: true
-  alias RivetTestLib.Yoink
+  alias TestApp.Yoink
 
   test "Rivet atomic update" do
     assert {:ok, %{id: n_id} = y} = Yoink.create(%{name: "narf"})

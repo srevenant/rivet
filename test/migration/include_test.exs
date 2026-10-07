@@ -1,10 +1,15 @@
-defmodule Test.Rivet.MigrationIncludeTest do
-  use Rivet.Case
+defmodule Rivet.Test.Migration.IncludeTest do
+  use Rivet.Test.Case
 
   test "migration include" do
-    opts = []
+    opts = [
+      base_dir: ".",
+      lib_dir: "test/support/test_app",
+      models_dir: "lib"
+    ]
     cfg = [app: :rivet]
     assert {:ok, rivet_cfg} = Rivet.Config.build(opts, cfg)
+    |>dbg
 
     assert {:ok, model_cfg} =
              %{prefix: 200, include: "pinky"}

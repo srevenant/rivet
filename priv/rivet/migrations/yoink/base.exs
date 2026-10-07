@@ -1,4 +1,4 @@
-defmodule RivetTestLib.Yoink.Migrations.Base do
+defmodule TestApp.Yoink.Migrations.Base do
   @moduledoc false
   use Ecto.Migration
 

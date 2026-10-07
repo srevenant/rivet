@@ -1,4 +1,4 @@
-defmodule Rivet.Case do
+defmodule Rivet.Test.Case do
   use ExUnit.CaseTemplate
 
   using do
@@ -6,7 +6,7 @@ defmodule Rivet.Case do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import Rivet.Case
+      import Rivet.Test.Case
       alias Ecto.Changeset
     end
   end

@@ -83,7 +83,7 @@ defmodule Rivet.Config do
     if File.dir?(models_root) do
       {:ok, %{models_root: models_root, tests_root: join_parts(basedir ++ testdir ++ modelsdir)}}
     else
-      {:error, "Models root folder '#{models_root}' doesn't exist"}
+      {:error, "models_root path '#{models_root}' doesn't exist"}
     end
   end
 end

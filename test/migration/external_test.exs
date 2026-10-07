@@ -1,12 +1,18 @@
-defmodule Test.Rivet.MigrationExternalTest do
-  use Rivet.Case
+defmodule Rivet.Test.Migration.ExternalTest do
+  use Rivet.Test.Case
 
   test "migration external" do
-    assert {:ok, migs} = Rivet.Migration.Load.prepare_project_migrations([], :rivet)
+    opts = [
+      base_dir: ".",
+      lib_dir: "test/support/test_app",
+      models_dir: "test"
+    ]
+
+    assert {:ok, migs} = Rivet.Migration.Load.prepare_project_migrations(opts, :rivet)
 
     assert {:ok,
             [
-              {30_000_000_000_000_000, RivetTestLib.Yoink.Migrations.Base},
+              {30_000_000_000_000_000, TestApp.Yoink.Migrations.Base},
               {40_000_000_000_000_000, Pinky.Base},
               {40_000_000_000_000_020, Pinky.Splat},
               {40_000_000_000_000_100, Pinky.Brain},

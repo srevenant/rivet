@@ -1,6 +1,6 @@
-defmodule Test.Rivet.DefEnumTest do
+defmodule Rivet.Test.Ecto.DefEnumTest do
   use ExUnit.Case, async: true
-  alias Rivet.DefEnum
+  alias Rivet.Ecto.DefEnum
 
   describe "validate_enum!/1" do
     test "accepts a valid keyword-style pair list" do

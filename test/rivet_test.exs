@@ -1,5 +1,5 @@
-defmodule Test.Rivet.RivetDocTest do
-  use Rivet.Case
+defmodule Rivet.Test.RivetTest do
+  use Rivet.Test.Case
 
   doctest Mix.Tasks.Rivet.List, import: true
   doctest Rivet.Ecto.Collection, import: true

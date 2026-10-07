@@ -1,4 +1,4 @@
-defmodule Rivet.Utils.Criteria do
+defmodule Rivet.Ecto.Criteria do
   @moduledoc """
   Criteria is used for cursor based pagination.
 
