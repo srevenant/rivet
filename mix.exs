@@ -49,7 +49,6 @@ defmodule Rivet.MixProject do
   defp deps do
     [
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ecto_enum, "~> 1.4"},
       {:ecto_sql, "~> 3.13"},
       {:es6_maps, "~> 1.0.2"},
       {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false},

@@ -49,7 +49,7 @@ defmodule Rivet.Graphql do
   def ok_as_list(pass), do: pass
 
   @doc """
-  Easy parser to connect Absinthe scalers with EctoEnum.
+  Easy parser to connect Absinthe scalers with DefEnum.
   """
   def parse_enum(%{value: value}, enum) do
     enum.cast(value)
