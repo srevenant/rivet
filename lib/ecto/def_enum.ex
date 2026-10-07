@@ -1,4 +1,14 @@
-defmodule Rivet.DefEnum do
+defmodule Rivet.Ecto.DefEnum do
+  @moduledoc """
+
+  Wrapper around Ecto.Enum to support defenum syntax:
+
+  defenum(Modname, a: 1, b: 2)...
+
+  For the most part this is a drop-in replacement for the `EctoEnum` module,
+  but leveraging more modern Ecto behaviors.
+
+  """
   defp normalize_enum!(ast, env) do
     pairs =
       case ast do

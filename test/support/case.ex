@@ -22,6 +22,7 @@ defmodule Rivet.Case do
     :ok
   end
 
+  # because I don't want it in a system folder, I'm not using system mktemp
   def temp_dir() do
     {:ok, random} = Rivet.Utils.Codes.generate(6, fn _ -> false end)
     System.tmp_dir!() |> Path.join(random)

@@ -1,6 +1,6 @@
 defmodule Rivet.Loader.Tools do
   import Transmogrify
-  import Rivet.Utils.Ecto.Errors, only: [convert_error_changeset: 1]
+  import Rivet.Ecto.Errors, only: [convert_error_changeset: 1]
   alias Rivet.Loader.State
 
   def handle_yaml_result({:error, err}) do

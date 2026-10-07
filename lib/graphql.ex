@@ -3,7 +3,7 @@ defmodule Rivet.Graphql do
   Helper functions for Absinthe resolvers.
   """
   require Logger
-  import Rivet.Utils.Ecto.Errors, only: [convert_error_changeset: 1]
+  import Rivet.Ecto.Errors, only: [convert_error_changeset: 1]
 
   @doc """
   ```

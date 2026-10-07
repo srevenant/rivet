@@ -1,4 +1,4 @@
-defmodule Rivet.Ecto.MigrationHelpers do
+defmodule Rivet.Migration.Helpers do
   import Ecto.Migration
 
   @moduledoc """
