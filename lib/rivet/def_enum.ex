@@ -1,4 +1,4 @@
-defmodule DefEnum do
+defmodule Rivet.DefEnum do
   defp normalize_enum!(ast, env) do
     pairs =
       case ast do
