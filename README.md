@@ -2,11 +2,14 @@
 
 ***This project is still a "Work in Progress" and not ready for GA***
 
-[Rivets](https://docs.google.com/document/d/1ntoTA9YRE7KvKpmwZRtfzKwTZNgo2CY6YfJnDNQAlBc) is an opinionated framework for managing data models in Elixir.
-
-`Rivet` is a series of helper libraries for elixir applications wanting help in their Rivets projects.
+[Rivets](https://docs.google.com/document/d/1ntoTA9YRE7KvKpmwZRtfzKwTZNgo2CY6YfJnDNQAlBc) is an opinionated framework for managing data models in Elixir, using a series of helper libraries for elixir applications wanting help in their Rivets projects.
 
 Library Contributors: Mark Erickson, Brandon Gillespie, Lyle Mantooth, Jake Wood
+
+## Rivet Ecto
+
+This library is named rivet, but is technically the ecto specific bits for Rivet,
+and is largely the base needed by other rivet libraries.
 
 Look in module docs lib/mix/tasks/index.ex for command syntax
 
