@@ -9,7 +9,6 @@ defmodule Rivet.Test.Migration.IncludeTest do
     ]
     cfg = [app: :rivet]
     assert {:ok, rivet_cfg} = Rivet.Config.build(opts, cfg)
-    |>dbg
 
     assert {:ok, model_cfg} =
              %{prefix: 200, include: "pinky"}

@@ -1,4 +1,4 @@
-defmodule Pinky.TestApp do
+defmodule Pinky.Narf do
   use Ecto.Migration
 
   def change do
