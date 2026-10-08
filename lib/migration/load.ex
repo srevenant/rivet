@@ -21,20 +21,15 @@ defmodule Rivet.Migration.Load do
 
   def config_build(opts, app) do
     Application.ensure_loaded(app)
-    app_config = Application.get_env(app, :rivet, [])
-
-    Keyword.put(app_config, :opts, opts) |> Map.new()
+    Rivet.Config.build(opts, Application.get_env(app, :rivet, []))
   end
 
   @doc """
   External interface to get migrations ready for use by Ecto
   """
-  # @spec prepare_project_migrations(opts :: list(), project_config :: list()) ::
-  #         {:ok, rivet_migrations()} | rivet_error()
   def prepare_project_migrations(opts, app) do
-    config = config_build(opts, app)
-
-    with {:ok, %{idx: idx}} <- load_migrations_from_config(config),
+    with {:ok, config} <- config_build(opts, app) |>dbg,
+         {:ok, %{idx: idx}} <- load_migrations_from_config(config),
          do: {:ok, Map.keys(idx) |> Enum.sort() |> Enum.map(&idx[&1])}
   end
 
@@ -50,28 +45,16 @@ defmodule Rivet.Migration.Load do
   end
 
   ##############################################################################
-  # @spec load_project_migrations(rivet_config()) :: {:ok, rivet_migrations()} | rivet_error()
-  defp load_migrations_from_config(rivet_config) do
-    rivet_dir = Application.app_dir(rivet_config.app, "priv/rivet/migrations")
-    migfile = Path.join(rivet_dir, @migrations_file)
-
-    if not File.exists?(migfile) do
-      {:error, "Migrations file is missing (#{migfile})"}
-    else
-      with {:ok, mig_data} <- load_data_file(migfile),
-           do: load_project_migrations(@initial_state, mig_data, rivet_config)
-    end
+  defp load_migrations_from_config(%{optsd: %{mig_dir}} = rivet_config) do
+    with {:ok, mig_file} <- Rivet.Config.valid_file([mig_dir, @migrations_file], "migrations"),
+         {:ok, mig_data} <- load_data_file(mig_file),
+         do: load_project_migrations(@initial_state, mig_data, rivet_config)
   end
 
-  # @spec load_project_migrations(
-  #         rivet_migration_state(),
-  #         list(rivet_migration_input_include() | rivet_migration_input_external()),
-  #         rivet_config()
-  #       ) ::
-  #         rivet_state_result()
   defp load_project_migrations(state, [model_migration | rest], config)
        when is_list(model_migration) and is_map(state) do
-    with {:ok, state} <- load_project_migration(Map.new(model_migration), state, config),
+    IO.inspect({Map.new(model_migration), state, config})
+    with {:ok, state} <- load_project_migration(Map.new(model_migration), state, config) |>dbg,
          do: load_project_migrations(state, rest, config)
   end
 
@@ -80,61 +63,39 @@ defmodule Rivet.Migration.Load do
   defp load_project_migrations({:error, _} = pass, _, _), do: pass
 
   ##############################################################################
-  # @spec load_project_migration(
-  #         rivet_migration_input_include() | rivet_migration_input_external(),
-  #         rivet_migration_state(),
-  #         rivet_config()
-  #       ) ::
-  #         rivet_state_result()
-  defp load_project_migration(
-         %{include: _} = model_migration,
-         state,
-         %{opts: opts} = rivet_config
-       ) do
-    with {:ok, model_mig} <- prepare_model_config(model_migration, rivet_config) do
+  def prepare_model_config(%{include: mod} = mig, mig_dir) do
+    with {:ok, path} <- Rivet.Config.valid_dir([mig_dir, mod], "model migration path"),
+         do: {:ok, %{struct(Rivet.Migration, mig) | path}}
+  end
+
+  defp load_project_migration(%{include: _} = model_migration, state, %{optsd}) do
+    with {:ok, mig} <- prepare_model_config(model_migration, optsd.mig_dir) do
       {:ok, state}
-      |> merge_model_migrations(model_mig, @index_file, true)
-      |> merge_model_migrations(model_mig, @archive_file, opts[:archive] == true)
+      |> merge_model_migrations(mig, @index_file, true)
+      |> merge_model_migrations(mig, @archive_file, optsd[:archive] == true)
     end
   end
 
   defp load_project_migration(%{external: extapp} = model_migration, state, _cfg) do
     appdir = Application.app_dir(extapp)
-    config = config_build([base_dir: appdir], extapp)
-    load_project_migrations(state, model_migration.migrations, config)
+    with {:ok, config} <- config_build([base_dir: appdir], extapp),
+      do: load_project_migrations(state, model_migration.migrations, config)
   end
 
   defp load_project_migration(model_migration, _, _),
     do: {:error, "Invalid migration (no include or external key): #{inspect(model_migration)}"}
 
   ##############################################################################
-  # @spec prepare_model_config(rivet_migration_input_any(), rivet_config()) :: {:ok, Rivet.Migration.t()} | rivet_error()
-  def prepare_model_config(%{include: modpath} = model_migration, %{app: app} = x) do
-    IO.inspect(x)
-    priv_dir = Application.app_dir(app, ["priv/rivet/migrations", modpath])
-    {:ok, %Rivet.Migration{struct(Rivet.Migration, model_migration) | path: priv_dir}}
-  end
-
-  ##############################################################################
-  # @spec merge_model_migrations(
-  #         rivet_error() | {:ok, rivet_migration_state()},
-  #         rivet_config(),
-  #         String.t(),
-  #         boolean()
-  #       ) ::
-  #         rivet_state_result()
   def merge_model_migrations({:ok, _} = pass, _, _, false), do: pass
 
   def merge_model_migrations({:ok, state}, mig, file, _) do
-    with {:ok, includes} <- load_data_file(Path.join([mig.path, file])),
+    with {:ok, includes} <- load_data_file(Rivet.Config.clean_path([mig.path, file])),
          do: flatten_include(state, includes, mig)
   end
 
   def merge_model_migrations({:error, _} = pass, _, _, _), do: pass
 
   # # # # #
-  # @spec flatten_include(rivet_migration_state(), list(map()), rivet_config()) ::
-  #         rivet_state_result()
   defp flatten_include(state, [mig | rest], model_cfg) do
     with {:ok, %{index: ver, module: mod} = mig} <- flatten_migration(model_cfg, Map.new(mig)) do
       if Map.has_key?(state.idx, ver) or Map.has_key?(state.mods, mod) do
@@ -149,9 +110,7 @@ defmodule Rivet.Migration.Load do
 
   defp flatten_include(state, [], _) when is_map(state), do: {:ok, state}
 
-  # # # # #
-  # @spec flatten_migration(map(), rivet_migration_input_model()) ::
-  #         {:ok, Rivet.Migration.t()} | rivet_error()
+  ##############################################################################
   defp flatten_migration(
          %Rivet.Migration{prefix: prefix, include: include, path: path},
          %{
@@ -173,7 +132,6 @@ defmodule Rivet.Migration.Load do
     end
   end
 
-  # @spec format_index(integer(), integer()) :: {:ok | :error, String.t()}
   defp format_index(prefix, v) when prefix <= 9999 and v <= 99_999_999_999_999,
     do: {:ok, as_int!(pad("#{prefix}", 4, "0") <> pad("#{v}", 14, "0"))}
 

@@ -7,12 +7,15 @@ defmodule Rivet.Test.Migration.IncludeTest do
       lib_dir: "test/support/test_app",
       models_dir: "lib"
     ]
+
     cfg = [app: :rivet]
     assert {:ok, rivet_cfg} = Rivet.Config.build(opts, cfg)
 
     assert {:ok, model_cfg} =
-             %{prefix: 200, include: "pinky"}
-             |> Rivet.Migration.Load.prepare_model_config(rivet_cfg)
+             Rivet.Migration.Load.prepare_model_config(
+               %{prefix: 200, include: "pinky"},
+               rivet_cfg
+             )
 
     state = %{idx: %{}, mods: %{}}
 

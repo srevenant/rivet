@@ -3,9 +3,9 @@ defmodule Rivet.Test.Migration.ExternalTest do
 
   test "migration external" do
     opts = [
-      base_dir: ".",
-      lib_dir: "test/support/test_app",
-      models_dir: "test"
+      lib_dir: "test/fixtures/rivet/lib",
+      # models_dir: "test_app",
+      priv_dir: "test/fixtures/rivet/priv"
     ]
 
     assert {:ok, migs} = Rivet.Migration.Load.prepare_project_migrations(opts, :rivet)

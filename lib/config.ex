@@ -11,6 +11,7 @@ defmodule Rivet.Config do
     lib_dir    - lib folder from base of project. Default: "lib"
     test_dir   - test folder from base of project. Default: "test"
     models_dir - sub-folder in lib_dir for models, default: "#{app_name}"
+    priv_dir   - where is 'priv' located
 
   From this we generate:
 
@@ -25,26 +26,33 @@ defmodule Rivet.Config do
                          "#{tests_root}/#{model_base_name}"
     base_path:     - base folder for project
   """
-  # @spec build(Keyword.t(), Keyword.t()) :: {:ok, rivet_config()} | rivet_error()
-  def build(opts, rivet_conf) do
+  def build(prefs, rivet_conf) do
     case rivet_conf[:app] do
       nil ->
         {:error, "Unable to find app configuration in config?"}
 
       app ->
-        basedir = getdir(:base_dir, opts, rivet_conf, ".")
-        libdir = getdir(:lib_dir, opts, rivet_conf, "lib")
-        testdir = getdir(:test_dir, opts, rivet_conf, "test")
-        modelsdir = getdir(:models_dir, opts, rivet_conf, "#{app}")
-        base = getconf(:base, opts, rivet_conf, modulename(join_parts(modelsdir)))
+        def_priv = Application.app_dir(app, "priv")
 
-        with {:ok, paths} <- get_paths(basedir, modelsdir, libdir, testdir) do
+        with {:ok, base_dir} <- getdir(:base_dir, prefs, rivet_conf, "."),
+             {:ok, lib_dir} <- getdir(:lib_dir, prefs, rivet_conf, "lib"),
+             {:ok, test_dir} <- getdir(:test_dir, prefs, rivet_conf, "test"),
+             {:ok, models_dir} <- getdir(:models_dir, prefs, rivet_conf, "#{app}", verify: false),
+             base <- getconf!(:base, prefs, rivet_conf, modulename(models_dir)),
+             {:ok, priv_dir} <- getdir(:priv_dir, prefs, rivet_conf, def_priv),
+             {:ok, paths} <- get_roots(base_dir, models_dir, lib_dir, test_dir),
+             {:ok, mig_dir} <- valid_dir([priv_dir, "rivet/migrations"], "migrations") do
+          optsd =
+            Map.new(prefs)
+            |> Map.merge(%{base_dir, lib_dir, test_dir, models_dir, priv_dir, mig_dir})
+
           {:ok,
            %{
-             base_path: Path.join(basedir),
-             app: app,
-             base: base,
-             opts: opts
+             optsd,
+             app,
+             base,
+             base_path: optsd[:base_dir],
+             opts: Map.to_list(optsd)
            }
            |> Map.merge(paths)}
         end
@@ -52,9 +60,36 @@ defmodule Rivet.Config do
   end
 
   # so we can get an empty string not falsey
-  defp getdir(key, opts, conf, default), do: getconf(key, opts, conf, default) |> Path.split()
+  defp getdir(key, prefs, conf, default, opts \\ []) do
+    getconf!(key, prefs, conf, default)
+    |> Path.split()
+    |> valid_dir(key, Keyword.get(opts, :verify, true))
+  end
 
-  defp getconf(key, opts, conf, default) do
+  # # # # # # #
+  def valid_file(list, key, verify? \\ true)
+
+  def valid_file(list, key, verify?) when is_list(list), do: clean_path(list) |> valid_file(key, verify?)
+
+  def valid_file(<<path::binary>>, key, true) do
+    if File.exists?(path), do: {:ok, path}, else: {:error, "Rivet file #{key} does not exist"}
+  end
+
+  def valid_file(<<path::binary>>, _, false), do: {:ok, path}
+
+  # # # # # # #
+  def valid_dir(list, key, verify? \\ true)
+
+  def valid_dir(list, key, verify?) when is_list(list), do: clean_path(list) |> valid_dir(key, verify?)
+
+  def valid_dir(<<path::binary>>, key, true) do
+    if File.dir?(path), do: {:ok, path}, else: {:error, "Rivet dir #{key}=#{path} does not exist"}
+  end
+
+  def valid_dir(<<path::binary>>, _, false), do: {:ok, path}
+
+
+  defp getconf!(key, opts, conf, default) do
     case opts[key] do
       nil ->
         case conf[key] do
@@ -67,7 +102,8 @@ defmodule Rivet.Config do
     end
   end
 
-  defp join_parts(list) do
+  # remove redundant "." paths (just because), and if there is no path make sure its "."
+  def clean_path(list) do
     list
     |> Enum.filter(&(&1 != "."))
     |> case do
@@ -77,13 +113,9 @@ defmodule Rivet.Config do
     |> Path.join()
   end
 
-  defp get_paths(basedir, modelsdir, libdir, testdir) do
-    models_root = join_parts(basedir ++ libdir ++ modelsdir)
-
-    if File.dir?(models_root) do
-      {:ok, %{models_root: models_root, tests_root: join_parts(basedir ++ testdir ++ modelsdir)}}
-    else
-      {:error, "models_root path '#{models_root}' doesn't exist"}
-    end
+  defp get_roots(b_dir, m_dir, l_dir, t_dir) do
+    with {:ok, models_root} <- valid_dir([b_dir, l_dir, m_dir], "models_root"),
+         {:ok, tests_root} <- valid_dir([b_dir, t_dir, m_dir], "tests_root", false),
+         do: {:ok, %{models_root, tests_root}}
   end
 end

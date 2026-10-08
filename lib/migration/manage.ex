@@ -5,6 +5,7 @@ defmodule Rivet.Migration.Manage do
   import Transmogrify.As
   import Transmogrify
   use Rivet
+  import Rivet.Config, only: [valid_file: 2, valid_dir: 2]
 
   @stepping 10
   @minimum 100
@@ -35,24 +36,25 @@ defmodule Rivet.Migration.Manage do
   ##############################################################################
   def add_migration(model, label, cfg) do
     ver = (cfg.opts[:version] || datestamp()) |> as_int!()
-    parts = module_parts(model, label, ver, cfg)
 
-    cond do
-      not File.exists?(parts.path.model) ->
-        {:error, "Model not found `#{parts.name.model}` in `#{parts.path.model}`"}
+    with {:ok, parts} <- module_parts(model, label, ver, cfg) do
+      cond do
+        not File.exists?(parts.path.model) ->
+          {:error, "Model not found `#{parts.name.model}` in `#{parts.path.model}`"}
 
-      not File.exists?(parts.path.migrations) ->
-        {:error, "Model Migrations not found in `#{parts.path.migrations}`"}
+        not File.exists?(parts.path.migrations) ->
+          {:error, "Model Migrations not found in `#{parts.path.migrations}`"}
 
-      # TODO: figure out how it'll work so we can put version in path, and check
-      # if module exists by name, without version#. Code.module_exists() doesn't
-      # work with .exs files...
-      File.exists?(parts.path.migration) ->
-        {:error,
-         "Model Migration already exists `#{parts.name.migration}` in `#{parts.path.migration}`"}
+        # TODO: figure out how it'll work so we can put version in path, and check
+        # if module exists by name, without version#. Code.module_exists() doesn't
+        # work with .exs files...
+        File.exists?(parts.path.migration) ->
+          {:error,
+           "Model Migration already exists `#{parts.name.migration}` in `#{parts.path.migration}`"}
 
-      true ->
-        create_migration(parts, cfg)
+        true ->
+          create_migration(parts, cfg)
+      end
     end
   end
 
@@ -94,7 +96,9 @@ defmodule Rivet.Migration.Manage do
   iex> cfg = %{app: :rivet_email, base: "Rivet.Email", base_path: "../rivet_email", models_root: "../rivet_email/lib/email", opts: [base_dir: "../rivet_email"], tests_root: "../rivet_email/test/email"}
   iex> ver = 2000
   iex> module_parts("Template", "doctest", ver, cfg)
-  %{base: "Doctest", name: %{migration: Rivet.Email.Template.Migrations.Doctest, model: "Rivet.Email.Template"}, path: %{migration: "priv/rivet/migrations/template/doctest.exs", migrations: "priv/rivet/migrations/template", model: "../rivet_email/lib/email/template"}, ver: 2000}
+  {:ok,
+    %{base: "Doctest", name: %{migration: Rivet.Email.Template.Migrations.Doctest, model: "Rivet.Email.Template"}, path: %{migration: "priv/rivet/migrations/template/doctest.exs", migrations: "priv/rivet/migrations/template", model: "../rivet_email/lib/email/template"}, ver: 2000}
+  }
   """
   def module_parts(model, label, ver, cfg) do
     model_parts =
@@ -113,19 +117,16 @@ defmodule Rivet.Migration.Manage do
     base = modulename(label)
     mig_name = Module.concat([model_name, "Migrations", base])
 
-    %{
-      base: base,
-      ver: ver,
-      name: %{
-        model: model_name,
-        migration: mig_name
-      },
-      path: %{
-        model: Path.join(cfg.models_root, model_path),
-        migrations: "priv/rivet/migrations/#{model_path}",
-        migration: "priv/rivet/migrations/#{model_path}/#{pathname(label)}.exs"
-      }
-    }
+    with {:ok, migrations} <- valid_dir([cfg.optsd.mig_dir, model_path], "model migration dir"),
+         {:ok, migration} <- valid_file([migrations, "#{pathname(label)}.exs"], "model migration") do
+      {:ok,
+       %{
+         base,
+         ver,
+         name: %{model: model_name, migration: mig_name},
+         path: %{migrations, migration, model: Path.join(cfg.models_root, model_path)}
+       }}
+    end
   end
 
   ##############################################################################

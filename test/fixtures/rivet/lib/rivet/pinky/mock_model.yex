@@ -2,7 +2,7 @@ defmodule Rivet.Test.MockModel do
   use TypedEctoSchema
   use Rivet.Ecto.Model
 
-  typed_schema "mock_modle" do
+  typed_schema "mock_model" do
     field(:okay, :string)
   end
 
