@@ -8,13 +8,14 @@ defmodule Rivet.Ecto.Collection.One do
         @type id :: integer
       end
 
-      if Keyword.get(opts, :not_found, :string) == :atom do
+      # Legacy
+      if Keyword.get(opts, :not_found, :atom) == :string do
+        @type one_error :: {:error, String.t() | map()}
+        @not_found "Nothing found"
+      else
         # map is Ecto.Query.CastError, but that has no type
         @type one_error :: {:error, atom() | map()}
         @not_found :not_found
-      else
-        @type one_error :: {:error, String.t() | map()}
-        @not_found "Nothing found"
       end
 
       ##########################################################################

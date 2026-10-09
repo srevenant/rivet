@@ -12,10 +12,10 @@ defmodule Mix.Tasks.Rivet.Init do
   # coveralls-ignore-start
   def run(_args) do
     Mix.Task.run("app.config", [])
-    app = Mix.Project.config()[:app]
 
-    with {:ok, mfile} <-
-           Rivet.Config.valid_file([app.optsd.mig_dir, @migrations_file], "migrations") do
+    cfg = config_build([], Mix.Project.config()[:app])
+
+    with {:ok, mfile} <- Rivet.Config.clean_path([cfg.optsd.mig_dir, @migrations_file]) do
       create_file(mfile, Templates.empty_list([]))
 
       IO.puts("""

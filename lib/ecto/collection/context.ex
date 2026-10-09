@@ -5,7 +5,7 @@ defmodule Rivet.Ecto.Collection.Context do
       import Ecto.Query, only: [from: 2]
 
       @model Keyword.get(opts, :model, __MODULE__)
-      @repo Application.compile_env!(:rivet, :repo)
+      @repo Keyword.get(opts, :repo, Application.compile_env(:rivet, :repo))
 
       @type ecto_p_result() :: {:ok | :error, Ecto.Changeset.t()}
       @type model_p_result() :: {:ok, @model.t()}

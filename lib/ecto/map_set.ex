@@ -8,20 +8,20 @@ defmodule Rivet.Ecto.MapSet do
 
   @type t :: MapSet.t()
 
-  def type, do: MapSet
+  def type, do: {:array, :string}
 
-  def cast(%MapSet{} = ms), do: ms
-  def cast(list) when is_list(list), do: MapSet.new(list)
+  def cast(%MapSet{} = set), do: {:ok, set}
+  def cast(values) when is_list(values), do: {:ok, MapSet.new(values)}
   def cast(_), do: :error
 
-  def load(%MapSet{} = ms), do: ms
-  def load(ms) when is_list(ms), do: {:ok, cast(ms)}
+  def load(values) when is_list(values), do: {:ok, MapSet.new(values)}
   def load(_), do: :error
 
-  # only support virtual for now
-  def dump(%MapSet{} = ms), do: {:ok, MapSet.to_list(ms)}
+  def dump(%MapSet{} = set), do: {:ok, MapSet.to_list(set)}
   def dump(_), do: :error
 
   def embed_as(_), do: :self
-  def equal?(a, b), do: MapSet.equal?(a, b)
+
+  def equal?(%MapSet{} = a, %MapSet{} = b), do: MapSet.equal?(a, b)
+  def equal?(_, _), do: falseend
 end

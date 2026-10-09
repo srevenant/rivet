@@ -130,8 +130,8 @@ defmodule Rivet.Config do
   end
 
   defp get_roots(b_dir, m_dir, l_dir, t_dir) do
-    with {:ok, models_root} <- valid_dir([b_dir, l_dir, m_dir], "models_root"),
-         {:ok, tests_root} <- valid_dir([b_dir, t_dir, m_dir], "tests_root", false),
+    with {:ok, models_root} <- clean_paths([b_dir, l_dir, m_dir]),
+         {:ok, tests_root} <- clean_paths([b_dir, t_dir, m_dir]),
          do: {:ok, %{models_root, tests_root}}
   end
 end
