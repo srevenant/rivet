@@ -224,7 +224,10 @@ class Coverage:
         if coverfail:
             self.push_error(app, 'coverage', "coverage didn't meet minimum")
 
-        line = f"{app.rjust(12,' ')}: {fail_label(len(failed['coverage']) or len(failed['tests']))}"
+        line = ""
+        if self.umbrella:
+            line = f"{app.rjust(12,' ')}: "
+        line = line + fail_label(len(failed['coverage']) or len(failed['tests']))
         errors = []
 
         covermsg = f"coverage {new_cvg['total_percent']}% {'<' if coverfail else '>='} min {min_cvg}% {fail_label(coverfail)}"
