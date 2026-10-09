@@ -89,15 +89,9 @@ defmodule Rivet.Search.Filter do
 
   def enrich_search_query(%Ecto.Query{} = query, builder, spec, filters, deffs)
       when is_map(spec) and is_list(filters) do
-    with {:ok, state} <- Filter.Prep.prep_state(spec, filters, deffs) do
-      query
-      |> Filter.Join.add_joins(state)
-      |> Filter.Expr.build_expr(state, builder)
-      |> Filter.Order.column_order(state)
-      |> case do
-        {:error, _} = pass -> pass
-        query -> {:ok, query}
-      end
-    end
+    with {:ok, state} <- Filter.Prep.prep_state(spec, filters, deffs),
+         {:ok, query} <- Filter.Join.add_joins(query, state),
+         {:ok, query} <- Filter.Expr.build_expr(query, state, builder),
+         do: Filter.Order.column_order(query, state)
   end
 end

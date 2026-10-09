@@ -13,14 +13,14 @@ defmodule Rivet.Search.Filter.Prep do
     do: prep_state_reducer(%Filter.State{specs, meta}, enrich_defaults(cols, default_filter))
 
   # insert a default filter if they don't already exist in cols
-  defp enrich_defaults(cols, default_filter) do
+  # ... if we want defaults first not user stuff first, flip ++ cols to the end
+  # ... also: if a default value has additional opts and the user-supplied version
+  #     does not, this will lose the default value. TBD if this is what we want
+  #     or not...
+  defp enrich_defaults(cols, defaults) do
     cols ++
-      Enum.reduce(default_filter, [], fn %{n: n} = f, acc ->
-        if Enum.any?(cols, &(&1.n == n)) do
-          acc
-        else
-          [f | acc]
-        end
+      Enum.reject(defaults, fn %{n: n} ->
+        Enum.any?(cols, &(&1.n == n))
       end)
   end
 
@@ -28,14 +28,10 @@ defmodule Rivet.Search.Filter.Prep do
   defp prep_state_reducer(state, [%{n: name} = fltr | rest]) do
     with {:ok, spec} <- get_filter_spec(name, state.specs),
          {:ok, fltr} <- init_filter(fltr),
-         {:ok, state, fltr} <- validate_type(state, spec, fltr) do
-      %{
-        state
-        | order: Filter.Order.prep_order(state, fltr, spec),
-          joins: Filter.Join.prep_join(state.joins, spec)
-      }
-      |> prep_state_reducer(rest)
-    end
+         {:ok, state, fltr} <- validate_type(state, spec, fltr),
+         {:ok, order} <- Filter.Order.prep_order(state, fltr, spec),
+         {:ok, joins} <- Filter.Join.prep_join(state.joins, spec),
+         do: prep_state_reducer(%{state | order, joins}, rest)
   end
 
   defp prep_state_reducer(state, []),

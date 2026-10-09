@@ -48,7 +48,7 @@ defmodule Rivet.MixProject do
 
   defp rivet_env(_), do: []
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "test/support", "test/fixtures/rivet"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp aliases do

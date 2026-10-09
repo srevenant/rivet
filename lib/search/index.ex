@@ -25,36 +25,44 @@ defmodule Rivet.Search do
     build = Keyword.fetch!(opts, :build)
     default = Keyword.get(opts, :default, [])
 
-    quote do
-      @soft_limit Application.compile_env(:rivet, :search_soft_limit, 25)
-      @hard_limit Application.compile_env(:rivet, :search_hard_limit, 400)
-      @search_spec Map.new(unquote(spec))
-      @search_default Enum.map(unquote(default), &Map.new/1)
-      @parent Rivet.Utils.Module.mod_parent(__MODULE__)
+    soft_limit =
+      Keyword.get(opts, :soft_limit, Application.get_env(:rivet, :search_soft_limit, 25))
 
-      def search(%{id}), do: @parent.one(id: id) |> Rivet.Result.status_results()
-      def search(%{filter} = args) do
-        unquote(build).(filter, nil, @search_spec, @search_default)
+    hard_limit =
+      Keyword.get(opts, :hard_limit, Application.get_env(:rivet, :search_hard_limit, 400))
+
+    quote do
+      @search_soft_limit unquote(soft_limit)
+      @search_hard_limit unquote(hard_limit)
+      @search_spec Rivet.Search.Validate.spec(unquote(spec))
+      @search_default Rivet.Search.Validate.defaults(unquote(default), @search_spec)
+      @search_parent Rivet.Utils.Module.mod_parent(__MODULE__)
+
+      def default_cols(), do: {:ok, @search_default}
+
+      def search(%{filter: _} = args) do
+        unquote(build).(args, @search_spec, @search_default)
         |> query_with_status(args)
       end
 
-      def query_with_status(a, b, opts \\ []),
-        do: Rivet.Search.query_with_status_({@parent, @soft_limit, @hard_limit}, a, b, opts)
+      def search(%{id}), do: @search_parent.one(id: id) |> Rivet.Search.Result.status_results()
+
+      def query_with_status(query, args, opts \\ []) do
+        Rivet.Search.query_with_status_(
+          {@search_parent, @search_soft_limit, @search_hard_limit},
+          query,
+          args,
+          opts
+        )
+      end
     end
   end
 
-  alias Rivet.Search.Result
   import Ecto.Query
-  import Rivet.Filter, only: [enrich_search_query: 5]
+  alias Rivet.Search.Result
 
-  @doc """
-  Most tests are in a separate file.
-
-  iex> query_with_status({:error, "boop"}, nil, nil)
-  {:ok, %{success: false, status: %{success: false, message: "boop"}, reason: "boop"}}
-
-  """
-  def query_with_status_(meta, {:ok, query}, args, opts),
+  ##############################################################################
+  def query_with_status_(meta, {:ok, %Ecto.Query{} = query}, args, opts),
     do: query_with_status__inner(meta, query, args, opts)
 
   def query_with_status_(meta, %Ecto.Query{} = query, args, opts),
@@ -73,18 +81,7 @@ defmodule Rivet.Search do
     |> Result.status_results(%{total, matching})
   end
 
-  # @doc """
-  # iex> get_limit(%{limit: -23}, 25, 400)
-  # 25
-  # iex> get_limit(%{limit: 45}, 25, 400)
-  # 45
-  # iex> get_limit(nil, 25, 400)
-  # 25
-  # iex> get_limit(%{limit: 55.555}, 25, 400)
-  # 25
-  # iex> get_limit(%{limit: 500}, 25, 400)
-  # 400
-  # """
+  ##############################################################################
   defp get_limit(%{limit: limit}, hard, soft) when is_integer(limit) do
     cond do
       limit < 0 -> soft
@@ -95,14 +92,7 @@ defmodule Rivet.Search do
 
   defp get_limit(_, _, soft), do: soft
 
-  # @doc """
-  # iex> get_total(nil, nil, total: 42)
-  # 42
-  #
-  # iex> insert(:org)
-  # iex> x = get_total(Repo, from(Db.Org), [])
-  # iex> x > 0
-  # """
+  ##############################################################################
   defp get_total(_, _, total: count) when is_integer(count), do: count
   defp get_total(parent, query, _), do: parent.aggregate(query, :count)
 end

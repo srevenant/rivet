@@ -3,7 +3,7 @@ defmodule Rivet.Search.Filter.Expr do
   import Ecto.Query
 
   @spec build_expr(Ecto.Query.t(), Filter.State.t(), function()) ::
-          Ecto.Query.t() | {:error, String.t()}
+          {:ok, Ecto.Query.t()} | {:error, String.t()}
   def build_expr(query, %Filter.State{values: values}, builder) when is_function(builder) do
     reduce_filter_expr(&and_expr/2, builder, values)
     |> finish_filter_expr(query, fn q, e -> where(q, [], ^e) end)
@@ -16,26 +16,24 @@ defmodule Rivet.Search.Filter.Expr do
   def reduce_filter_expr(add, builder, list) when is_list(list),
     do: reduce_filter_expr_(nil, add, builder, list |> Enum.reverse())
 
-  ##
+  # inner
   defp reduce_filter_expr_(expr, add, builder, [elem | rest]) do
     case builder.(elem) do
       :skip -> reduce_filter_expr_(expr, add, builder, rest)
       {:ok, nexpr} -> reduce_filter_expr_(add.(expr, nexpr), add, builder, rest)
-      pass -> pass
+      {:error, _} = error -> error
     end
   end
 
-  # defp reduce_filter_expr_(nil, _, _, []), do: :skip
   defp reduce_filter_expr_(expr, _, _, []), do: {:ok, expr}
 
   ######
-  # defp finish_filter_expr(:skip, query, _), do: query
   defp finish_filter_expr({:ok, nil}, query, _finisher), do: query
   defp finish_filter_expr({:ok, expr}, query, finisher), do: finisher.(query, expr)
-  defp finish_filter_expr(pass, _, _), do: pass
+  defp finish_filter_expr({:error, _} = error, _, _), do: error
 
   ### Keep around for a bit incase we ever need to or things again
-  # def build_or_expr({:error, _} = pass, _, _), do: pass
+  # def build_or_expr({:error, _} = error, _, _), do: error
   #
   # def build_or_expr(query, builder, %{excludes: excludes}) do
   #   reduce_filter_expr(&or_expr/2, builder, excludes)
