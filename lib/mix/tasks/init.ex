@@ -27,5 +27,5 @@ defmodule Mix.Tasks.Rivet.Init do
     end
   end
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end

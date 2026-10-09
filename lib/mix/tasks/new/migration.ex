@@ -17,5 +17,5 @@ defmodule Mix.Tasks.Rivet.New.Migration do
     syntax(optcfg, "mix rivet.new migration {model} {label} [opts]")
   end
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end

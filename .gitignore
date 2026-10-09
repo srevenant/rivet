@@ -27,3 +27,6 @@ priv/plts/*.plt
 priv/plts/*.plt.hash
 
 /.migrations.exs
+
+test/.tmp
+x

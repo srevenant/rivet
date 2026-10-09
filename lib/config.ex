@@ -32,29 +32,37 @@ defmodule Rivet.Config do
         {:error, "Unable to find app configuration in config?"}
 
       app ->
-        def_priv = Application.app_dir(app, "priv")
-
         with {:ok, base_dir} <- getdir(:base_dir, prefs, rivet_conf, "."),
              {:ok, lib_dir} <- getdir(:lib_dir, prefs, rivet_conf, "lib"),
              {:ok, test_dir} <- getdir(:test_dir, prefs, rivet_conf, "test"),
              {:ok, models_dir} <- getdir(:models_dir, prefs, rivet_conf, "#{app}", verify: false),
              base <- getconf!(:base, prefs, rivet_conf, modulename(models_dir)),
-             {:ok, priv_dir} <- getdir(:priv_dir, prefs, rivet_conf, def_priv),
-             {:ok, paths} <- get_roots(base_dir, models_dir, lib_dir, test_dir),
-             {:ok, mig_dir} <- valid_dir([priv_dir, "rivet/migrations"], "migrations") do
+             {:ok, paths} <- get_roots(base_dir, models_dir, lib_dir, test_dir) do
+          # partial, we'll do a second pass...
           optsd =
             Map.new(prefs)
-            |> Map.merge(%{base_dir, lib_dir, test_dir, models_dir, priv_dir, mig_dir})
+            |> Map.merge(%{base_dir, lib_dir, test_dir, models_dir, priv_dir: nil, mig_dir: nil})
 
-          {:ok,
-           %{
-             optsd,
-             app,
-             base,
-             base_path: optsd[:base_dir],
-             opts: Map.to_list(optsd)
-           }
-           |> Map.merge(paths)}
+          def_priv = Path.join(get_app_dir(optsd, app), "priv")
+
+          with {:ok, priv_dir} <- getdir(:priv_dir, prefs, rivet_conf, def_priv),
+               {:ok, mig_dir} <- valid_dir([priv_dir, "rivet/migrations"], "migrations", false) do
+            optsd = %{optsd | priv_dir, mig_dir}
+
+            fwd_opts =
+              Map.drop(optsd, [:base_dir, :lib_dir, :test_dir, :models_dir, :priv_dir, :mig_dir])
+
+            {:ok,
+             %{
+               optsd,
+               app,
+               base,
+               base_path: optsd[:base_dir],
+               opts: Map.to_list(optsd),
+               fwd_opts: Map.to_list(fwd_opts)
+             }
+             |> Map.merge(paths)}
+          end
         end
     end
   end
@@ -66,10 +74,17 @@ defmodule Rivet.Config do
     |> valid_dir(key, Keyword.get(opts, :verify, true))
   end
 
+  # wrap Application.get_dir so we can override it for testing
+  def get_app_dir(optsd, app) do
+    key = String.to_atom("#{app}_override")
+    Map.get(optsd, key, Application.app_dir(app))
+  end
+
   # # # # # # #
   def valid_file(list, key, verify? \\ true)
 
-  def valid_file(list, key, verify?) when is_list(list), do: clean_path(list) |> valid_file(key, verify?)
+  def valid_file(list, key, verify?) when is_list(list),
+    do: clean_path(list) |> valid_file(key, verify?)
 
   def valid_file(<<path::binary>>, key, true) do
     if File.exists?(path), do: {:ok, path}, else: {:error, "Rivet file #{key} does not exist"}
@@ -80,14 +95,15 @@ defmodule Rivet.Config do
   # # # # # # #
   def valid_dir(list, key, verify? \\ true)
 
-  def valid_dir(list, key, verify?) when is_list(list), do: clean_path(list) |> valid_dir(key, verify?)
+  def valid_dir(list, key, verify?) when is_list(list),
+    do: clean_path(list) |> valid_dir(key, verify?)
 
   def valid_dir(<<path::binary>>, key, true) do
-    if File.dir?(path), do: {:ok, path}, else: {:error, "Rivet dir #{key}=#{path} does not exist"}
+    # if File.dir?(path), do: {:ok, path}, else: {:error, "Rivet dir #{key}=#{path} does not exist"}
+    if File.dir?(path), do: {:ok, path}, else: raise("Rivet dir #{key}=#{path} does not exist")
   end
 
   def valid_dir(<<path::binary>>, _, false), do: {:ok, path}
-
 
   defp getconf!(key, opts, conf, default) do
     case opts[key] do

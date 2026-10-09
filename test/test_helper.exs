@@ -7,3 +7,8 @@ Supervisor.start_link([Rivet.Test.Repo], strategy: :one_for_one)
 
 Ecto.Adapters.SQL.Sandbox.mode(Rivet.Test.Repo, :manual)
 # Faker.start()
+
+Code.require_file(
+  "test/fixtures/rivet/lib/rivet/test_table/model.ex",
+  File.cwd!()
+)

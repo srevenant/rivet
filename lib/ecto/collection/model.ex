@@ -21,7 +21,7 @@ defmodule Rivet.Ecto.Collection.Model do
     do: unique_constraint(chgset, key) |> validate_unique_constraints(rest)
 
   def validate_unique_constraints(chgset, []), do: chgset
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do

@@ -63,5 +63,5 @@ defmodule Mix.Tasks.Rivet do
     Mix.shell().info(@moduledoc)
   end
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end

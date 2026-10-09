@@ -38,6 +38,7 @@ defmodule Mix.Tasks.Rivet.New do
       lib: :boolean,
       model: :boolean,
       lib_dir: [:string, :keep],
+      priv_dir: [:string, :keep],
       loader: :boolean,
       log_migrations_sql: :boolean,
       log_migrator_sql: :boolean,

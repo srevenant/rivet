@@ -99,5 +99,5 @@ defmodule Mix.Tasks.Rivet.Migrate do
     end
   end
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end

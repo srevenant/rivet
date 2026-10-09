@@ -28,7 +28,7 @@ defmodule Rivet.Migration.Load do
   External interface to get migrations ready for use by Ecto
   """
   def prepare_project_migrations(opts, app) do
-    with {:ok, config} <- config_build(opts, app) |>dbg,
+    with {:ok, config} <- config_build(opts, app),
          {:ok, %{idx: idx}} <- load_migrations_from_config(config),
          do: {:ok, Map.keys(idx) |> Enum.sort() |> Enum.map(&idx[&1])}
   end
@@ -53,8 +53,7 @@ defmodule Rivet.Migration.Load do
 
   defp load_project_migrations(state, [model_migration | rest], config)
        when is_list(model_migration) and is_map(state) do
-    IO.inspect({Map.new(model_migration), state, config})
-    with {:ok, state} <- load_project_migration(Map.new(model_migration), state, config) |>dbg,
+    with {:ok, state} <- load_project_migration(Map.new(model_migration), state, config),
          do: load_project_migrations(state, rest, config)
   end
 
@@ -76,10 +75,11 @@ defmodule Rivet.Migration.Load do
     end
   end
 
-  defp load_project_migration(%{external: extapp} = model_migration, state, _cfg) do
-    appdir = Application.app_dir(extapp)
-    with {:ok, config} <- config_build([base_dir: appdir], extapp),
-      do: load_project_migrations(state, model_migration.migrations, config)
+  defp load_project_migration(%{external: extapp} = model_migration, state, cfg) do
+    appdir = Rivet.Config.get_app_dir(cfg.optsd, extapp)
+
+    with {:ok, config} <- config_build(cfg.fwd_opts ++ [base_dir: appdir], extapp),
+         do: load_project_migrations(state, model_migration.migrations, config)
   end
 
   defp load_project_migration(model_migration, _, _),

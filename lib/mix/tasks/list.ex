@@ -25,7 +25,6 @@ defmodule Mix.Tasks.Rivet.List do
     #      cache: :boolean,
     #      test: :boolean
   ]
-  # coveralls-ignore-start
   def parse_options(args, switches, aliases \\ []),
     do: OptionParser.parse(args, strict: @switches ++ switches, aliases: aliases)
 
@@ -45,8 +44,6 @@ defmodule Mix.Tasks.Rivet.List do
       {_, _, errs} -> syntax(inspect(errs, label: "bad arguments"))
     end
   end
-
-  # coveralls-ignore-start
 
   defp list_models(_opts), do: IO.puts("To be implemented")
 
@@ -95,7 +92,6 @@ defmodule Mix.Tasks.Rivet.List do
   end
 
   ################################################################################
-  # coveralls-ignore-start
   def syntax(err \\ false) do
     cmd = Rivet.Utils.Cli.task_cmd(__MODULE__)
 
@@ -116,5 +112,5 @@ defmodule Mix.Tasks.Rivet.List do
     end
   end
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end

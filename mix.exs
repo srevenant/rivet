@@ -33,17 +33,32 @@ defmodule Rivet.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      env: [rivet: [app: :rivet]],
+      env: [rivet: [app: :rivet] ++ rivet_env(Mix.env())],
       mod: {Rivet.Application, []}
     ]
   end
+
+  defp rivet_env(:test),
+    do: [
+      lib_dir: "test/fixtures/rivet/lib",
+      priv_dir: "test/fixtures/rivet/priv",
+      app1_override: "test/fixtures/app1",
+      app2_override: "test/fixtures/app2"
+    ]
+
+  defp rivet_env(_), do: []
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp aliases do
-    # keystrokes of life
-    [c: ["compile"]]
+    [
+      "ecto.setup": ["ecto.create", "rivet migrate", "ecto.migrate"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      # keystrokes of life
+      c: ["compile"]
+    ]
   end
 
   defp deps do
@@ -59,6 +74,9 @@ defmodule Rivet.MixProject do
       {:postgrex, "~> 0.22.4"},
       # {:rivet_utils, "~> 2.0"},
       {:rivet_utils, git: "https://github.com/srevenant/rivet-utils/", branch: "v3"},
+      # not used but this hels things test properly
+      {:app1, path: "test/fixtures/app1", only: :test, runtime: false},
+      {:app2, path: "test/fixtures/app2", only: :test, runtime: false},
       {:transmogrify, "~> 2.0"},
       {:typed_ecto_schema, "~> 0.4", runtime: false},
       {:yaml_elixir, "~> 2.12"}

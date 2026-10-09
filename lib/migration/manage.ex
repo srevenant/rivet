@@ -5,7 +5,7 @@ defmodule Rivet.Migration.Manage do
   import Transmogrify.As
   import Transmogrify
   use Rivet
-  import Rivet.Config, only: [valid_file: 2, valid_dir: 2]
+  import Rivet.Config, only: [valid_file: 3, valid_dir: 3]
 
   @stepping 10
   @minimum 100
@@ -93,11 +93,29 @@ defmodule Rivet.Migration.Manage do
 
   ##############################################################################
   @doc """
-  iex> cfg = %{app: :rivet_email, base: "Rivet.Email", base_path: "../rivet_email", models_root: "../rivet_email/lib/email", opts: [base_dir: "../rivet_email"], tests_root: "../rivet_email/test/email"}
+  # ...>   lib_dir: "test/fixtures/rivet/lib",
+  # ...>   priv_dir: "test/fixtures/rivet/priv"
+
+  iex> {:ok, cfg} = Rivet.Migration.Load.config_build([
+  ...>   app1_override: "test/fixtures/app1",
+  ...>   app2_override: "test/fixtures/app2",
+  ...> ], :rivet)
   iex> ver = 2000
-  iex> module_parts("Template", "doctest", ver, cfg)
+  iex> module_parts("Brain", "doctest", ver, cfg)
   {:ok,
-    %{base: "Doctest", name: %{migration: Rivet.Email.Template.Migrations.Doctest, model: "Rivet.Email.Template"}, path: %{migration: "priv/rivet/migrations/template/doctest.exs", migrations: "priv/rivet/migrations/template", model: "../rivet_email/lib/email/template"}, ver: 2000}
+    %{
+      base: "Doctest",
+      name: %{
+        migration: Rivet.Brain.Migrations.Doctest,
+        model: "Rivet.Brain"
+      },
+      path: %{
+        migration: "test/fixtures/rivet/priv/rivet/migrations/brain/doctest.exs",
+        migrations: "test/fixtures/rivet/priv/rivet/migrations/brain",
+        model: "test/fixtures/rivet/lib/rivet/brain"
+      },
+      ver: 2000
+    }
   }
   """
   def module_parts(model, label, ver, cfg) do
@@ -117,8 +135,10 @@ defmodule Rivet.Migration.Manage do
     base = modulename(label)
     mig_name = Module.concat([model_name, "Migrations", base])
 
-    with {:ok, migrations} <- valid_dir([cfg.optsd.mig_dir, model_path], "model migration dir"),
-         {:ok, migration} <- valid_file([migrations, "#{pathname(label)}.exs"], "model migration") do
+    with {:ok, migrations} <-
+           valid_dir([cfg.optsd.mig_dir, model_path], "model migration dir", false),
+         {:ok, migration} <-
+           valid_file([migrations, "#{pathname(label)}.exs"], "model migration", false) do
       {:ok,
        %{
          base,

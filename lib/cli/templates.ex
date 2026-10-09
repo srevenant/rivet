@@ -22,8 +22,8 @@ defmodule Rivet.Cli.Templates do
   end
   """)
 
-  # coveralls-ignore-start
   ################################################################################
+  # coveralls-ignore-start
   def empty_list(opts), do: empty_list_template(opts)
 
   embed_template(:empty_list, """
@@ -149,5 +149,5 @@ defmodule Rivet.Cli.Templates do
   end
   """)
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 end
