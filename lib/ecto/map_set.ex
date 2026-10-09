@@ -23,5 +23,5 @@ defmodule Rivet.Ecto.MapSet do
   def embed_as(_), do: :self
 
   def equal?(%MapSet{} = a, %MapSet{} = b), do: MapSet.equal?(a, b)
-  def equal?(_, _), do: falseend
+  def equal?(_, _), do: false
 end

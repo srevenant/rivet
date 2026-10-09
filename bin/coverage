@@ -1,0 +1,363 @@
+#!/usr/bin/env python3
+"""
+
+Run umbrella-app ExCoveralls tests and summarize coverage and how it is changing
+from the previous run, for the purpose of helping highlight dropped coverage.
+
+Requires an Elixir project which already has ex_coveralls in use.
+
+"""
+
+import argparse
+import json
+import math
+import os
+import subprocess
+import sys
+import re
+from pathlib import Path
+
+REPORT_NAME = "excoveralls.json"
+STATE_NAME = "coverage_wrapper.json"
+LOG_NAME = "coveralls.log"
+COVERALLS_CFG = 'coveralls.json'
+DEFAULT_MIN_COVERAGE = 10.0
+DEFAULT_NEW_FILE_MIN = 99.0
+
+################################################################################
+def read_minimum(config: Path) -> float:
+    if not config.is_file():
+        return DEFAULT_MIN_COVERAGE
+    value = read_json(config).get("coverage_options", {}).get(
+        "minimum_coverage", DEFAULT_MIN_COVERAGE
+    )
+    minimum = float(value)
+    if not math.isfinite(minimum) or not 0 <= minimum <= 100:
+        raise ValueError(f"invalid minimum_coverage in {config}: {value!r}")
+    return minimum
+
+def read_json(path: Path) -> dict:
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+def is_dependency(filename: str) -> bool:
+    """sometimes deps bleed into coveralls report, so cut them out"""
+    parts = filename.replace("\\", "/").split("/")
+    return any(a == "src" and b == "deps" for a, b in zip(parts, parts[1:]))
+
+class ReportPaths:
+    app: Path
+    report: Path
+    state: Path
+    log: Path
+    cfg: Path
+
+    ## todo future: flag for umbrella or not
+    def __init__(self, root, app, umbrella):
+        src = root / 'src'
+        if src.exists():
+            root = src
+
+        if umbrella:
+            app_dir = root / umbrella / app
+        else:
+            app_dir = root
+
+        cover_dir = app_dir / 'cover'
+
+        self.app = app_dir
+        self.report = cover_dir / REPORT_NAME
+        self.state = cover_dir / STATE_NAME
+        self.log = cover_dir / LOG_NAME
+        self.cfg = app_dir / COVERALLS_CFG
+
+################################################################################
+def fail_label(failed):
+    if failed:
+        return "FAILED"
+    return "PASSED"
+
+def fdwrite(fd, msg):
+    fd.writelines(msg)
+    fd.write("\n")
+    fd.flush()
+
+def stderr(msg):
+    fdwrite(sys.stderr, msg)
+
+def stdout(msg):
+    fdwrite(sys.stdout, msg)
+
+############################################################
+def run_coverage(paths: ReportPaths):
+    paths.report.unlink(missing_ok=True)
+    paths.log.unlink(missing_ok=True)
+
+    env = {**os.environ, "MIX_ENV": "test"}
+    try:
+        completed = subprocess.run(
+            ["mix", "coveralls.json"], cwd=paths.app, env=env,
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace", check=False,
+        )
+
+        paths.log.parent.mkdir(parents=True, exist_ok=True)
+        paths.log.write_text(completed.stdout, encoding="utf-8")
+
+        return (completed.returncode, completed.stdout)
+
+    except OSError as error:
+        return (127, f"Could not run mix: {error}\n")
+
+# failure is if the coverage of tests array has elements
+def make_app():
+    return dict(coverage=list(), tests=list())
+
+class Coverage:
+    def __init__(self, opts):
+        (root, umbrella) = base_paths()
+
+        self.state_compare = None
+        self.root = root
+        self.umbrella = umbrella
+        self.opts = opts
+        self.failed = {}
+        self.report = []
+        self.good = False
+
+    def scan(self):
+        if self.umbrella:
+            if self.opts.apps == []:
+                with os.scandir(self.root / self.umbrella) as entries:
+                    apps = sorted([a.name for a in entries if a.is_dir()])
+            else:
+                apps = self.opts.apps
+
+            for app in apps:
+                self.scan_app(app)
+        else:
+            self.scan_app("")
+
+        # now report/exit
+        stdout("")
+        stdout(self.report)
+
+        if not self.good:
+            sys.exit(1)
+        sys.exit(0)
+
+    def scan_app(self, app):
+        self.failed[app] = make_app()
+
+        paths = ReportPaths(self.root, app, self.umbrella)
+
+        which_app = ''
+        if self.umbrella:
+            which_app = " for " + app
+
+        stderr(f"\n== running tests{which_app}...")
+
+        (status, output) = run_coverage(paths)
+
+        if status != 0:
+            stdout(output)
+            msg = f"tests FAILED, see {paths.log}"
+            self.push_error(app, 'tests', msg)
+            stderr("   " + msg)
+
+        current = default_summary()
+        if paths.report.exists():
+            current = make_summary(read_json(paths.report))
+        else:
+            self.push_error(app, 'coverage', f"warning: no exunit report file '{paths.report}'")
+
+        previous = None
+        self.state_compare = True
+        if paths.state.is_file():
+            previous = read_json(paths.state)
+        else:
+            self.state_compare = False
+            previous = default_summary()
+
+        # still need to migrate to stateful object
+        self.report_coverage(app, previous, current, paths.state)
+
+    def push_error(self, app, type, error):
+        if self.state_compare:
+            array = self.failed[app][type]
+            if not error in array:
+                array.append(error)
+            self.good = False
+
+    def report_coverage(self, app, old_cvg, new_cvg, coverage_state):
+        logs = []
+        for filename, cvg_data in sorted(new_cvg['files'].items()):
+            if filename not in old_cvg['files']:
+                if cvg_data['percent'] < DEFAULT_NEW_FILE_MIN:
+                    self.push_error(app, 'coverage', f"coverage too low for new file {filename}")
+
+                    log_change(logs, "NEW TOO LOW", None, cvg_data, filename)
+
+        for filename, old in sorted(old_cvg['files'].items()):
+            if filename in new_cvg['files']:
+                if not is_dependency(filename):
+                    new = new_cvg['files'][filename]
+                    diff = (old['relevant_lines'] - old['covered_lines']) - \
+                           (new['relevant_lines'] - new['covered_lines'])
+                    if diff < 0: # went down
+                        log_change(logs, "DOWN", old, new, filename)
+                        self.push_error(app, 'coverage', f"coverage went down in {filename}")
+
+        if len(logs) > 0:
+            stderr("")
+            stderr(logs)
+
+        if not self.good and self.opts.fail_fast:
+            stderr("Stopping early due to failure")
+            sys.exit(1)
+
+        min_cvg = read_minimum(ReportPaths(self.root, app, self.umbrella).cfg)
+
+        failed = self.failed[app]
+
+        coverfail = new_cvg['total_percent'] < min_cvg
+        if coverfail:
+            self.push_error(app, 'coverage', "coverage didn't meet minimum")
+
+        line = f"{app.rjust(12,' ')}: {fail_label(len(failed['coverage']) or len(failed['tests']))}"
+        errors = []
+
+        covermsg = f"coverage {new_cvg['total_percent']}% {'<' if coverfail else '>='} min {min_cvg}% {fail_label(coverfail)}"
+
+        stderr("   " + covermsg)
+        errors = failed['tests'] + failed['coverage']
+
+        if len(errors):
+            self.good = False
+            pad = "\n" + (" " * 14)
+            line += ":" + pad + (pad.join(errors))
+
+        # only save if we had no errors
+        if self.opts.save and not len(errors) or self.opts.force:
+            with open(coverage_state, 'w') as jfile:
+                json.dump(new_cvg, jfile)
+
+        self.report.append(line + "\n")
+
+################################################################################
+def list_match(list, func):
+    # Returns the number of items that func is true for
+    tot = 0
+    for item in list:
+        if func(item):
+            tot += 1
+    return tot
+
+def summarize_coverage(file_coverage):
+    covered = list_match(file_coverage, lambda i : i != None and i > 0)
+    uncovered = list_match(file_coverage, lambda i : i != None and i == 0)
+    relevant = 0
+    percent = 0
+
+    if covered > 0 or uncovered > 0:
+        relevant = covered + uncovered
+        percent = round((covered / relevant) * 100, 1)
+
+    # a file containing no covered or uncovered lines is fully covered
+    else:
+        percent= 100.0
+
+    return dict(
+        lines=len(file_coverage),
+        irrelevant_lines=list_match(file_coverage, lambda i : i == None),
+        relevant_lines=relevant,
+        covered_lines=covered,
+        uncovered_lines=uncovered,
+        percent=percent
+    )
+
+def default_summary():
+    return dict(
+        total_relevant=0,
+        total_covered=0,
+        total_uncovered=0,
+        total_percent=0.0,
+        files=dict()
+    )
+
+def make_summary(cvg_data):
+    summary = default_summary()
+    files = summary["files"]
+    for file in cvg_data['source_files']:
+        files[file['name']] = summarize_coverage(file['coverage'])
+        summary["total_relevant"] += files[file['name']]['relevant_lines']
+        summary["total_covered"] += files[file['name']]['covered_lines']
+        summary["total_uncovered"] += files[file['name']]['uncovered_lines']
+
+    summary["total_percent"] = round((summary["total_covered"]/(summary["total_relevant"] or 1))*100,1)
+    return summary
+
+def log_change(array, label, old, new, fname):
+    diff = 0
+    oldp = ""
+    if old:
+        diff = (new['relevant_lines'] - new['covered_lines']) - \
+               (old['relevant_lines'] - old['covered_lines'])
+        oldp = f"%{old['percent']}"
+
+    if new:
+        newp = f"%{new['percent']}"
+
+    line = ""
+    if old:
+        line = f"   DOWN {oldp:>6} → {newp:<6} {fname}"
+    else:
+        line = f"   NEW TOO LOW   {newp:<6} {fname}"
+
+    if diff > 0:
+        lines = ''
+        if diff > 1:
+            lines = 's'
+        line = f"{line} +{diff} line{lines} not covered"
+    array.append(line + "\n")
+
+################################################################################
+def base_paths() -> str:
+    root = find_root()
+
+    with open(root / "mix.exs") as f:
+        for line in f:
+            match = re.search(r'apps_path: "([^"]+)"', line)
+            if match:
+                return (root, match.group(1))
+
+    return (root, None)
+
+def find_root() -> Path:
+    root = Path(__file__).resolve().parent.parent
+
+    mix = root / "mix.exs"
+    if mix.exists():
+        return root
+
+    mix = root / "src" / "mix.exs"
+    if mix.exists():
+        return root / "src"
+
+    raise ValueError("Cannot find mix.exs")
+
+################################################################################
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--save', action='store_true', default=False)
+    parser.add_argument('--force', action='store_true', default=False)
+    parser.add_argument('--fail-fast', action='store_true', default=False, help="Abort on any error")
+    parser.add_argument('apps', nargs='*')
+    args = parser.parse_args()
+
+    Coverage(args).scan()
+
+try:
+    sys.exit(main())
+except KeyboardInterrupt:
+    sys.exit(130)

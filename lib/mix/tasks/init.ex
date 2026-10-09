@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Rivet.Init do
   def run(_args) do
     Mix.Task.run("app.config", [])
 
-    cfg = config_build([], Mix.Project.config()[:app])
+    cfg = Rivet.Migration.Load.config_build([], Mix.Project.config()[:app])
 
     with {:ok, mfile} <- Rivet.Config.clean_path([cfg.optsd.mig_dir, @migrations_file]) do
       create_file(mfile, Templates.empty_list([]))

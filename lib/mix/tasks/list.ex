@@ -111,6 +111,4 @@ defmodule Mix.Tasks.Rivet.List do
       IO.puts(:stderr, err)
     end
   end
-
-  # coveralls-ignore-stop
 end
