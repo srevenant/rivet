@@ -54,7 +54,9 @@ defmodule Rivet.Test.Search.SearchTest do
     def filter_expr(:name, %{v: "%error%"}, _), do: {:error, :filter_failed}
     def filter_expr(:name, %{v: "%skip%"}, _), do: :skip
     def filter_expr(:name, %{v: [:no_value]}, _), do: :skip
-    def filter_expr(:name, %{v: name}, _), do: {:ok, dynamic([mock_parent: p], ilike(p.name, ^name))}
+
+    def filter_expr(:name, %{v: name}, _),
+      do: {:ok, dynamic([mock_parent: p], ilike(p.name, ^name))}
   end
 
   test "search execution and callback handling" do

@@ -222,9 +222,4 @@ defmodule Rivet.Search.Filter.Prep do
       do: {:ok, value},
       else: {:error, "Invalid value for #{key}: not a uuid"}
   end
-
-  defp validate_type_value(_value, badscheme, _) do
-    # this is a literal code problem and shouldn't happen in general use
-    {:error, "Bad search scheme? (#{inspect(badscheme)})"}
-  end
 end

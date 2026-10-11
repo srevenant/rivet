@@ -4,10 +4,6 @@ defmodule Rivet.Test.Search.Filter.JoinTest do
   alias Rivet.TestTable
   import Ecto.Query
 
-  # test "Filter.Join" do
-  #   assert {:ok, %Ecto.Query{}} = Filter.Join.add_joins(%Ecto.Query{}, nil)
-  # end
-
   test "prep_join" do
     func = fn _, query, state -> {:ok, query, state} end
 
