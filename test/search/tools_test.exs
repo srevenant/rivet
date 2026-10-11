@@ -1,8 +1,7 @@
 defmodule Rivet.Test.Search.ToolsTest do
   use Rivet.Test.Case, async: true
   import Ecto.Query
-
-  alias Rivet.Search.{Filter, Tools}
+  alias Rivet.Search.Tools
   alias Rivet.TestTable
 
   ##############################################################################
@@ -55,7 +54,7 @@ defmodule Rivet.Test.Search.ToolsTest do
 
   test "association join helpers" do
     query = from(p in Parent, as: :p)
-    state = %Filter.State{joined: %{children: []}}
+    state = %Rivet.Search{joined: %{children: []}}
 
     # existing join, don't do anything
     assert ^query = Tools.stateful_join_relation(query, state, :p, :children)
@@ -66,7 +65,7 @@ defmodule Rivet.Test.Search.ToolsTest do
     end
 
     left_joined.(Tools.join_relation(query, :p, :children))
-    left_joined.(Tools.stateful_join_relation(query, %Filter.State{}, :p, :children))
+    left_joined.(Tools.stateful_join_relation(query, %Rivet.Search{}, :p, :children))
 
     # Both helpers also support an explicit join type.
     right_joined = fn x ->
@@ -74,7 +73,7 @@ defmodule Rivet.Test.Search.ToolsTest do
     end
 
     right_joined.(Tools.join_relation(query, :p, :children, :inner))
-    right_joined.(Tools.stateful_join_relation(query, %Filter.State{}, :p, :children, :inner))
+    right_joined.(Tools.stateful_join_relation(query, %Rivet.Search{}, :p, :children, :inner))
   end
 
   test "enum preparation helpers" do

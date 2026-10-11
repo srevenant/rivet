@@ -46,15 +46,15 @@ defmodule Rivet.Test.Search.SearchTest do
       hard_limit: 5
 
     @impl Rivet.Search
-    def base_query(opts) do
-      if opts[:fail_base], do: {:error, :base_failed}, else: super(opts)
+    def base_query(%Rivet.Search{} = s) do
+      if s.opts[:fail_base], do: {:error, :base_failed}, else: super(s)
     end
 
     @impl Rivet.Search
-    def filter_expr(:name, %{v: "%error%"}), do: {:error, :filter_failed}
-    def filter_expr(:name, %{v: "%skip%"}), do: :skip
-    def filter_expr(:name, %{v: [:no_value]}), do: :skip
-    def filter_expr(:name, %{v: name}), do: {:ok, dynamic([mock_parent: p], ilike(p.name, ^name))}
+    def filter_expr(:name, %{v: "%error%"}, _), do: {:error, :filter_failed}
+    def filter_expr(:name, %{v: "%skip%"}, _), do: :skip
+    def filter_expr(:name, %{v: [:no_value]}, _), do: :skip
+    def filter_expr(:name, %{v: name}, _), do: {:ok, dynamic([mock_parent: p], ilike(p.name, ^name))}
   end
 
   test "search execution and callback handling" do
@@ -131,6 +131,6 @@ defmodule Rivet.Test.Search.SearchTest do
 
   test "filter_expr fallback" do
     assert {:error, "Invalid filter column data (unknown)"} =
-             TestSearch.filter_expr(:unknown, %{})
+             TestSearch.filter_expr(:unknown, %{}, %Rivet.Search{})
   end
 end

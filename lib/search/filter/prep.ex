@@ -1,7 +1,7 @@
 defmodule Rivet.Search.Filter.Prep do
   @moduledoc """
 
-  Prepares search filters into a normalized `%Filter.State{}`.
+  Prepares search filters into a normalized `%Rivet.Search{}`.
 
   User-supplied filters override defaults by column name. Values are validated
   and converted according to their column schema.
@@ -16,27 +16,12 @@ defmodule Rivet.Search.Filter.Prep do
   alias Rivet.Search.Filter
   import Rivet.Guards
 
-  ####################
-
-  @spec prep_state(map(), [map()], [map()], map()) :: {:ok, Filter.State.t()} | {:error, term()}
-  def prep_state(schema, cols, default_filter, meta \\ %{})
-
-  def prep_state(schema, [], default_filter, meta),
-    do: prep_state_reducer(%Filter.State{schema, meta}, default_filter)
-
-  def prep_state(schema, cols, default_filter, meta),
-    do: prep_state_reducer(%Filter.State{schema, meta}, enrich_defaults(cols, default_filter))
-
-  # insert a default filter if they don't already exist in cols
-  # ... if we want defaults first not user stuff first, flip ++ cols to the end
-  # ... also: if a default value has additional opts and the user-supplied version
-  #     does not, this will lose the default value. TBD if this is what we want
-  #     or not...
-  defp enrich_defaults(cols, defaults) do
-    cols ++
-      Enum.reject(defaults, fn %{n: n} ->
-        Enum.any?(cols, &(&1.n == n))
-      end)
+  @spec prep_state(atom(), [map()], map()) :: {:ok, Filter.t()} | {:error, term()}
+  def prep_state(searcher, cols, opts) do
+    prep_state_reducer(
+      %Rivet.Search{opts, searcher, schema: searcher.get_schema()},
+      enrich_defaults(cols, searcher.get_default_filters())
+    )
   end
 
   ####################
@@ -63,6 +48,21 @@ defmodule Rivet.Search.Filter.Prep do
 
   defp prep_state_reducer(_, [_ | _]),
     do: {:error, "Invalid search filter: missing column name"}
+
+  # insert a default filter if they don't already exist in filter cols
+  # ... if we want defaults first not user stuff first, flip ++ filter cols to the end
+  # ... also: if a default value has additional opts and the user-supplied version
+  #     does not, this will lose the default value. TBD if this is what we want
+  #     or not...
+  defp enrich_defaults([], defaults), do: defaults
+  defp enrich_defaults(cols, []), do: cols
+
+  defp enrich_defaults(cols, defaults) do
+    cols ++
+      Enum.reject(defaults, fn %{n: n} ->
+        Enum.any?(cols, &(&1[:n] == n))
+      end)
+  end
 
   ####################
   defp badcol(name), do: {:error, "Invalid column '#{name}'"}

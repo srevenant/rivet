@@ -24,9 +24,9 @@ defmodule Rivet.Search.Filter.Join do
     do: {:ok, Map.put(joins, name, join)}
 
   ##############################################################################
-  @spec add_joins(Ecto.Query.t(), Filter.State.t() | nil) ::
+  @spec add_joins(Ecto.Query.t(), Filter.t() | nil) ::
           {:ok, Ecto.Query.t()} | {:error, term()}
-  def add_joins(%Ecto.Query{} = query, %Filter.State{joins} = state) when map_size(joins) > 0 do
+  def add_joins(%Ecto.Query{} = query, %Rivet.Search{joins} = state) when map_size(joins) > 0 do
     joined = join_keys(query)
     add_joins_(query, %{state | joined}, Map.to_list(joins))
   end
@@ -37,7 +37,7 @@ defmodule Rivet.Search.Filter.Join do
   defp add_joins_(query, state, [{filter_key, join} | rest]) do
     # the case just assures external functions are shaped right
     case join.(filter_key, query, state) do
-      {:ok, %Ecto.Query{} = query, %Filter.State{} = state} ->
+      {:ok, %Ecto.Query{} = query, %Rivet.Search{} = state} ->
         # merge both whatever is in the query plus the filter key
         joined = Map.put(state.joined, filter_key, :joined) |> Map.merge(join_keys(query))
 

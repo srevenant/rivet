@@ -14,11 +14,11 @@ defmodule Rivet.Search.Filter.Order do
   """
   alias Rivet.Search.Filter
   import Ecto.Query
-  @spec column_order(Ecto.Query.t(), Filter.State.t()) :: {:ok, Ecto.Query.t()} | {:error, term()}
+  @spec column_order(Ecto.Query.t(), Filter.t()) :: {:ok, Ecto.Query.t()} | {:error, term()}
 
-  def column_order(%Ecto.Query{} = query, %Filter.State{order: []}), do: {:ok, query}
+  def column_order(%Ecto.Query{} = query, %Rivet.Search{order: []}), do: {:ok, query}
 
-  def column_order(%Ecto.Query{} = query, %Filter.State{order: order}),
+  def column_order(%Ecto.Query{} = query, %Rivet.Search{order: order}),
     do: build_order_by(query, order)
 
   ##############################################################################
@@ -36,9 +36,9 @@ defmodule Rivet.Search.Filter.Order do
 
   ##############################################################################
 
-  @spec prep_order(Filter.State.t(), map(), map()) :: {:ok, keyword()} | {:error, term()}
+  @spec prep_order(Filter.t(), map(), map()) :: {:ok, keyword()} | {:error, term()}
   # no order
-  def prep_order(%Filter.State{order}, _, %{order: false}), do: {:ok, order}
+  def prep_order(%Rivet.Search{order}, _, %{order: false}), do: {:ok, order}
 
   # callback for order; note: compile-time verification already assured it was arity/4
   def prep_order(state, fltr, %{name, order: ord_func} = scheme) when is_function(ord_func) do
@@ -55,7 +55,7 @@ defmodule Rivet.Search.Filter.Order do
   end
 
   # other ordering scenarios; filter order is already parsed and takes precedence
-  def prep_order(%Filter.State{order}, fltr, %{name, key: cname} = scheme) do
+  def prep_order(%Rivet.Search{order}, fltr, %{name, key: cname} = scheme) do
     value =
       case scheme[:join] do
         nil -> {fltr.o, cname}

@@ -2,13 +2,13 @@ defmodule Rivet.Test.Search.Filter.OrderTest do
   use Rivet.Test.Case, async: true
   import Ecto.Query
 
-  alias Rivet.Search.Filter.{Order, State, Prep}
+  alias Rivet.Search.Filter.{Order, Prep}
   alias Rivet.TestTable
 
   test "column_order with no ordering" do
     query = from(t in TestTable, as: :t)
 
-    assert {:ok, ^query} = Order.column_order(query, %State{})
+    assert {:ok, ^query} = Order.column_order(query, %Rivet.Search{})
   end
 
   test "column_order with a named join" do
@@ -16,7 +16,7 @@ defmodule Rivet.Test.Search.Filter.OrderTest do
 
     # Two-element tuples refer to the base query.
     # Three-element tuples refer to a named binding.
-    state = %State{order: [{:asc, :name}, {:desc, :related, :name}]}
+    state = %Rivet.Search{order: [{:asc, :name}, {:desc, :related, :name}]}
 
     assert {:ok,
             %Ecto.Query{
@@ -27,14 +27,14 @@ defmodule Rivet.Test.Search.Filter.OrderTest do
 
   test "prep_order ignores order: false" do
     existing = [name: {:asc, :name}]
-    state = %State{order: existing}
+    state = %Rivet.Search{order: existing}
     schema = %{name: :status, key: :status, order: false}
 
     assert {:ok, ^existing} = Order.prep_order(state, %{o: :desc}, schema)
   end
 
   test "prep_order supports fixed directions" do
-    state = %State{}
+    state = %Rivet.Search{}
 
     # Fixed descending overrides the frontend's ascending request.
     schema = %{name: :name, key: :name, order: :desc}
@@ -52,19 +52,19 @@ defmodule Rivet.Test.Search.Filter.OrderTest do
       end
     }
 
-    assert {:ok, [name: {:desc, :name}]} = Order.prep_order(%State{}, %{o: :desc}, schema)
+    assert {:ok, [name: {:desc, :name}]} = Order.prep_order(%Rivet.Search{}, %{o: :desc}, schema)
   end
 
   test "prep_order propagates custom callback errors" do
     schema = %{name: :name, key: :name, order: fn _, _, _, _ -> {:error, :not_allowed} end}
-    assert {:error, :not_allowed} = Order.prep_order(%State{}, %{o: :asc}, schema)
+    assert {:error, :not_allowed} = Order.prep_order(%Rivet.Search{}, %{o: :asc}, schema)
   end
 
   test "prep_order rejects malformed callback results" do
     schema = %{name: :name, key: :name, order: fn _, _, _, _ -> :invalid end}
 
     assert {:error, "External order function returned invalid shape for name"} =
-             Order.prep_order(%State{}, %{o: :asc}, schema)
+             Order.prep_order(%Rivet.Search{}, %{o: :asc}, schema)
   end
 
   test "coverage" do
