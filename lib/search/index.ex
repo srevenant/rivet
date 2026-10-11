@@ -50,7 +50,7 @@ defmodule Rivet.Search do
   @doc "Applies application-specific modifications to an enriched search query."
   @callback build_filter_query(search_filters(), runtime_opts()) :: query_result()
 
-  @optional_callbacks base_query: 1, build_filter_query: 2
+  @optional_callbacks search: 2, base_query: 1, build_filter_query: 2
 
   defmacro __using__(opts) do
     # this is compile-time stuff so not coverage tracked -BJG
@@ -104,6 +104,7 @@ defmodule Rivet.Search do
       """
       def search(filters, opts \\ [matching: true]),
         do: Rivet.Search.search_(__MODULE__, filters, opts)
+      defoverridable search: 2
 
       def base_query(_opts), do: {:ok, from(@search_model, as: ^@search_model_name)}
       defoverridable base_query: 1

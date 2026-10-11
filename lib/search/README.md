@@ -8,7 +8,7 @@ Typical usage pattern:
 
 ```elixir
 defmodule MyApp.RivetModel.Search do
-  @col_schema [
+  schema = [
     status: [type: :atom, list: :in],
     name: [type: :glob],
     owner: [type: :glob, key: :name, join: &fjoin_to_owner/3],
@@ -16,9 +16,9 @@ defmodule MyApp.RivetModel.Search do
     updated_at: [type: :date, order: :only]
   ]
 
-  @default_filter [[n: "name"]]
+  default_filter = [[n: "name"]]
 
-  use Rivet.Search, schema: @col_schema, default_filters: @default_filters
+  use Rivet.Search, schema: schema, default_filters: default_filters
 
   @impl Rivet.Search
   def filter_expr(:name, ..)
