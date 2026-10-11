@@ -18,26 +18,21 @@ defmodule MyApp.RivetModel.Search do
 
   @default_filter [[n: "name"]]
 
-  use Rivet.Search,
-    schema: @col_schema,
-    default: @default_filter,
-    build: &__MODULE__.build_search_query/3
+  use Rivet.Search, schema: @col_schema, default_filters: @default_filters
 
-  def build_search_query(...)
-  ...
+  @impl Rivet.Search
+  def filter_expr(:name, ..)
+
 ```
 
 This will generate a search function that supports a map with either `:filter` or `:id` as a key (filter taking priority).
 
 Options you can give to the creation of a search model:
 
-  schema: []    - REQUIRED (see SPEC/column schema).
-  build: func/3 - REQUIRED, see query-builder callback below.
-  default: []   - default filter set when no user-supplied filters are provided
-                  (infills missing columns too).
-  soft_limit: x - default=25 - this is the default result limit if there is not
-                  a user-supplied limit.
-  hard_limit:	x - default=400 - this is the max a user-supplied limit can have.
+  * `:schema` - REQUIRED (see SPEC/column schema).
+  * `:default_filters` - default filter set when no user-supplied filters are provided (infills missing columns too).
+  * `:soft_limit` - default=25 - this is the default result limit if there is not a user-supplied limit.
+  * `:hard_limit` - default=400 - this is the max a user-supplied limit can have.
 
 ## Pagination
 

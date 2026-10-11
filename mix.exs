@@ -95,7 +95,7 @@ defmodule Rivet.MixProject do
   defp docs() do
     [
       main: "Rivet",
-      extras: ["search/README.md"]
+      extras: ["lib/search/README.md"]
     ]
   end
 end

@@ -55,6 +55,8 @@ defmodule Rivet.Search do
   defmacro __using__(opts) do
     # this is compile-time stuff so not coverage tracked -BJG
     # coveralls-ignore-start
+    opts = Rivet.Search.Validate.options!(opts)
+
     schema = Keyword.fetch!(opts, :schema)
     default_filters = Keyword.get(opts, :default_filters, [])
 
@@ -70,8 +72,11 @@ defmodule Rivet.Search do
     quote do
       @behaviour Rivet.Search
 
-      @search_schema Rivet.Search.Validate.schema(unquote(schema))
-      @search_default Rivet.Search.Validate.defaults(unquote(default_filters), @search_schema)
+      @search_schema Rivet.Search.Validate.schema!(unquote(schema))
+      @search_default Rivet.Search.Validate.default_filters!(
+                        unquote(default_filters),
+                        @search_schema
+                      )
 
       @search_soft_limit unquote(soft_limit)
       @search_hard_limit unquote(hard_limit)
@@ -170,10 +175,10 @@ defmodule Rivet.Search do
   end
 
   # no limit in args, default to soft
-  defp get_limit(searcher, _, _), do: searcher.get_soft_limit()
+  defp get_limit(searcher, _, opts), do: opts[:soft_limit] || searcher.get_soft_limit()
 
   # they want a count of all matching results (not limited)
-  defp get_offset(true, offset) when is_number(offset) and offset > 0, do: offset
+  defp get_offset(true, offset) when is_integer(offset) and offset > 0, do: offset
   defp get_offset(_, _), do: nil
 
   ##############################################################################
@@ -191,7 +196,7 @@ defmodule Rivet.Search do
     schema = searcher.get_schema()
 
     with {:ok, state} <- Filter.Prep.prep_state(schema, filters, def_filters),
-         {:ok, query} = searcher.base_query(opts),
+         {:ok, query} <- searcher.base_query(opts),
          {:ok, query} <- Filter.Join.add_joins(query, state),
          {:ok, query} <- Filter.Expr.build_expr(query, state, searcher),
          do: Filter.Order.column_order(query, state)
@@ -199,5 +204,5 @@ defmodule Rivet.Search do
 
   ##############################################################################
   defp add_offset(query, nil), do: query
-  defp add_offset(query, n) when is_number(n), do: offset(query, ^n)
+  defp add_offset(query, n) when is_integer(n), do: offset(query, ^n)
 end

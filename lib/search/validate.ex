@@ -9,10 +9,11 @@ defmodule Rivet.Search.Validate do
 
   @builtin_types [:string, :glob, :uuid, :atom, :integer, :float, :date]
   @schema_options [:type, :list, :key, :join, :prep, :order]
+  @search_options [:schema, :default_filters, :model, :soft_limit, :hard_limit]
 
   ##############################################################################
-  @spec schema(keyword() | map()) :: map()
-  def schema(schema) do
+  @spec schema!(keyword() | map()) :: map()
+  def schema!(schema) do
     schema = config_map!(schema, "Search schema")
 
     Map.new(schema, fn {name, raw_opts} ->
@@ -71,8 +72,8 @@ defmodule Rivet.Search.Validate do
   defp valid_join?(_), do: false
 
   ##############################################################################
-  @spec defaults(list(), map()) :: [map()]
-  def defaults(default, schema) when is_list(default) and is_map(schema) do
+  @spec default_filters!(list(), map()) :: [map()]
+  def default_filters!(default, schema) when is_list(default) and is_map(schema) do
     known = Enum.map(Map.keys(schema), &Atom.to_string/1)
 
     defaults =
@@ -105,7 +106,7 @@ defmodule Rivet.Search.Validate do
     defaults
   end
 
-  def defaults(_, _), do: raise(ArgumentError, "Search defaults must be a list")
+  def default_filters!(_, _), do: raise(ArgumentError, "Search defaults must be a list")
 
   ##############################################################################
   defp config_map!(value, _) when is_map(value), do: value
@@ -121,6 +122,20 @@ defmodule Rivet.Search.Validate do
 
   defp config_map!(_, context),
     do: raise(ArgumentError, "#{context}: expected a map or keyword list")
+
+  ################################################################################
+  @spec options!(keyword()) :: keyword()
+  def options!(opts) do
+    required!(Keyword.keyword?(opts), "Rivet.Search options must be a keyword list")
+
+    keys = Keyword.keys(opts)
+    unknown = keys -- @search_options
+
+    required!(length(keys) == length(Enum.uniq(keys)), "Duplicate Rivet.Search options")
+    required!(unknown == [], "Unknown Rivet.Search options: #{inspect(unknown)}")
+
+    opts
+  end
 
   ##############################################################################
   defp required!(true, _), do: :ok

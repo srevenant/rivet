@@ -1,6 +1,7 @@
 defmodule Rivet.Test.Search.SearchTest do
   use Rivet.Test.Case, async: true
   import Ecto.Query
+  alias __MODULE__.MockParent.TestSearch
 
   doctest Rivet.Search.Tools, import: true
   doctest Rivet.Search.Result, import: true
@@ -31,13 +32,13 @@ defmodule Rivet.Test.Search.SearchTest do
       7
     end
 
-    def all(query) do
-      send(self(), {:limit, query.limit.params})
-      {:ok, [%{id: 1}]}
+    def all(%Ecto.Query{} = query) do
+      send(self(), {:query_all, query})
+      {:ok, [%{id: Ecto.UUID.generate()}]}
     end
   end
 
-  defmodule MockParent.Search do
+  defmodule MockParent.TestSearch do
     use Rivet.Search,
       schema: [name: [type: :glob]],
       default_filters: [[n: "name"]],
@@ -45,50 +46,60 @@ defmodule Rivet.Test.Search.SearchTest do
       hard_limit: 5
 
     @impl Rivet.Search
+    def base_query(opts) do
+      if opts[:fail_base], do: {:error, :base_failed}, else: super(opts)
+    end
+
+    @impl Rivet.Search
+    def filter_expr(:name, %{v: "%error%"}), do: {:error, :filter_failed}
+    def filter_expr(:name, %{v: "%skip%"}), do: :skip
     def filter_expr(:name, %{v: [:no_value]}), do: :skip
     def filter_expr(:name, %{v: name}), do: {:ok, dynamic([mock_parent: p], ilike(p.name, ^name))}
   end
 
-  # ##############################################################################
-  # test "query_with_status counts, limits and results" do
-  #   meta = {MockParent, 3, 5}
-  #   query = from(t in TestTable, as: :t)
-  #
-  #   # Explicit total skips the unfiltered aggregate.
-  #   assert {:ok, %{success: true, total: 88, matching: 7, results: [%{id: 1}]}} =
-  #            Rivet.Search.search(
-  #            meta, {:ok, query}, %{limit: 2}, total: 88)
-  #
-  #   refute_received :total_count
-  #   assert_received :matching_count
-  #   assert_received {:limit, [{2, _}]}
-  #
-  #   # Default, negative, invalid, zero, normal, and hard-capped limits.
-  #   [
-  #     {%{}, 3},
-  #     {%{limit: -1}, 3},
-  #     {%{limit: "bad"}, 3},
-  #     {%{limit: 0}, 0},
-  #     {%{limit: 2}, 2},
-  #     {%{limit: 5}, 5},
-  #     {%{limit: 100}, 5}
-  #   ]
-  #   |> Enum.each(fn {args, expected} ->
-  #     assert {:ok, %{success: true, total: 12, matching: 7, results: [%{id: 1}]}} =
-  #              Rivet.Search.query_with_status_(meta, query, args, [])
-  #
-  #     assert_received :total_count
-  #     assert_received :matching_count
-  #     assert_received {:limit, [{^expected, _}]}
-  #   end)
-  # end
+  test "search execution and callback handling" do
+    # Runtime soft limit and offset, without count queries.
+    assert {:ok, %{success: true, results: [_]}} =
+             TestSearch.search(%{filter: [], offset: 10}, matching: false, soft_limit: 2)
+
+    assert_received {:query_all, %Ecto.Query{} = query}
+    assert %Ecto.Query{limit: %{params: [{2, _}]}} = query
+    assert %Ecto.Query{offset: nil} = query
+    refute_received :matching_count
+    refute_received :total_count
+
+    # Hard limit and both count queries.
+    assert {:ok, %{success: true, matching: 7, total: 12}} =
+             TestSearch.search(%{filter: [], limit: 100, offset: 10}, matching: true, total: true)
+
+    assert_received {:query_all, %Ecto.Query{} = query}
+    assert %Ecto.Query{limit: %{params: [{5, _}]}} = query
+    assert %Ecto.Query{offset: %{params: [{10, _}]}} = query
+    assert_received :matching_count
+    assert_received :total_count
+
+    # Callback errors propagate through the query builder.
+    assert {:error, :base_failed} = TestSearch.build_filter_query([], fail_base: true)
+
+    assert {:error, :filter_failed} =
+             TestSearch.build_filter_query([%{n: "name", v: ["error"]}], [])
+
+    # A skipped expression preserves the rest of the query.
+    assert {:ok, %Ecto.Query{wheres: [], order_bys: [_]}} =
+             TestSearch.build_filter_query([%{n: "name", v: ["skip"]}], [])
+
+    # Invalid public API arguments.
+    assert {:error, :args} = TestSearch.search(%{filter: nil})
+    assert {:error, :args} = TestSearch.search(%{})
+
+    # Negative limit gives default
+    assert {:ok, %{limit: 3}} = TestSearch.search(%{filter: [], limit: -1})
+  end
 
   ##############################################################################
   # this doesn't add to coverage, but assures that the generated Search instance
   # also operates as expected.
   test "public search API" do
-    alias MockParent.Search, as: TestSearch
-
     assert %{name: %{type: :glob}} = TestSearch.get_schema()
     assert [%{n: "name"}] = TestSearch.get_default_filters()
     assert MockParent = TestSearch.get_model()
@@ -101,13 +112,13 @@ defmodule Rivet.Test.Search.SearchTest do
     assert {:ok, %{success: true, total: 12, matching: 7, results: [_]}} =
              TestSearch.search(%{filter: []}, matching: true, total: true)
 
-    assert_received {:limit, [{3, _}]}
+    assert_received {:query_all, %{limit: %{params: [{3, _}]}}}
 
     # Explicit filter and limit.
     assert {:ok, %{success: true, results: [_]}} =
              TestSearch.search(%{filter: [%{n: "name", v: ["bob"]}], limit: 1})
 
-    assert_received {:limit, [{1, _}]}
+    assert_received {:query_all, %{limit: %{params: [{1, _}]}}}
 
     # Search by ID.
     uuid = Ecto.UUID.generate()

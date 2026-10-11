@@ -133,7 +133,7 @@ defmodule Rivet.Test.Search.Filter.PrepTest do
         k3: [prep: valid_prep3, order: false],
         k4: [type: :date, order: :desc]
       ]
-      |> Validate.schema()
+      |> Validate.schema!()
 
     filter =
       [
@@ -142,7 +142,7 @@ defmodule Rivet.Test.Search.Filter.PrepTest do
         [n: "k3", v: ["beta"]],
         [n: "k4", v: ["now"]]
       ]
-      |> Validate.defaults(schema)
+      |> Validate.default_filters!(schema)
 
     assert {:ok,
             %Filter.State{
@@ -162,7 +162,7 @@ defmodule Rivet.Test.Search.Filter.PrepTest do
   end
 
   test "prep_state atom and integer validation" do
-    schema = [status: [type: :atom], count: [type: :integer]] |> Validate.schema()
+    schema = [status: [type: :atom], count: [type: :integer]] |> Validate.schema!()
 
     assert {:ok,
             %Filter.State{
@@ -193,7 +193,7 @@ defmodule Rivet.Test.Search.Filter.PrepTest do
   test "prep callback returning no_value" do
     prep = fn _ -> {:ok, :no_value} end
 
-    schema = Validate.schema(scalar: [prep: prep], listed: [list: :in, prep: prep])
+    schema = Validate.schema!(scalar: [prep: prep], listed: [list: :in, prep: prep])
 
     filters = [%{n: "scalar", v: ["anything"]}, %{n: "listed", v: ["anything"]}]
 

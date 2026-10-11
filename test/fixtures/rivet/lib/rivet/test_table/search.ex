@@ -4,7 +4,7 @@ defmodule Rivet.TestTable.Search do
       status: [type: :atom, list: :in],
       name: [type: :glob]
     ],
-    default_filter: [[n: "name"]]
+    default_filters: [[n: "name"]]
 
   @impl Rivet.Search
   def filter_expr(:status, %{x: :is, v: stat}),
