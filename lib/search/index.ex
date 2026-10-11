@@ -46,9 +46,7 @@ defmodule Rivet.Search do
   Builds a WHERE expression for a prepared search column.
 
   NOTE: Rivet.Search adds a default filter_expr that returns an error, so if
-  you do not want to define one you can leave it out. However this also means
-  you should place your filter_expr last in your module if you want to avoid
-  warnings that functions are out of order.
+  you do not want to define one you can leave it out.
 
   """
   @callback filter_expr(column :: atom(), filter :: search_filter()) :: filter_result()
@@ -115,6 +113,7 @@ defmodule Rivet.Search do
       """
       def search(filters, opts \\ [matching: true]),
         do: Rivet.Search.search_(__MODULE__, filters, opts)
+
       defoverridable search: 2
 
       def base_query(_opts), do: {:ok, from(@search_model, as: ^@search_model_name)}

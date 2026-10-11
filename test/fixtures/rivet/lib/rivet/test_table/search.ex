@@ -18,6 +18,4 @@ defmodule Rivet.TestTable.Search do
 
   def filter_expr(:name, %{x: :no, v: name}),
     do: {:ok, dynamic([test_table: t], not ilike(t.name, ^name))}
-
-  def filter_expr(_, _), do: {:error, "Unsupported filter"}
 end

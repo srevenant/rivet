@@ -98,30 +98,6 @@ defmodule Rivet.Test.Search.Filter.PrepTest do
              prep_state(schema, [%{}], [])
   end
 
-  # test "prep/build expr" do
-  #   # filters = [%{n: "status", x: :is}]
-  #   filters = [%{n: "status", x: :is, v: ["is"]}]
-  #   query = %Ecto.Query{}
-  #   filter_func = fn _ -> {:ok, nil} end
-  #
-  #   schema = Validate.schema(status: [type: :atom, list: :in])
-  #
-  #   assert {:ok, %Ecto.Query{joins: [], order_bys: [_], wheres: []}} =
-  #            Rivet.build_filter_query( fn _ -> :skip end, schema, filters, [])
-  #
-  #   assert {:error, :narf} =
-  #            Filter.enrich_search_query(query, fn _ -> {:error, :narf} end, schema, filters, [])
-  #
-  #   ##########
-  #   schema = Validate.schema(status: [type: :atom, list: :in, prep: fn _ -> :skip end])
-  #
-  #   assert {:ok, %Ecto.Query{}} =
-  #            Filter.enrich_search_query(query, filter_func, schema, filters, [])
-  #
-  #   schema = Validate.schema(status: [type: :atom, list: :in, prep: fn _ -> {:error, "narf"} end])
-  #   assert {:error, "narf"} = Filter.enrich_search_query(query, filter_func, schema, filters, [])
-  # end
-
   test "prep_state defaults and custom prep", %{start} do
     valid_prep2 = fn value, %{name} -> {:ok, "#{name}:#{value}"} end
     valid_prep3 = fn value, %{name}, %{meta} -> {:ok, "#{meta.prefix}:#{name}:#{value}"} end
@@ -208,5 +184,15 @@ defmodule Rivet.Test.Search.Filter.PrepTest do
 
     assert {:ok, [owner_name: {:desc, :owner, :name}]} =
              Order.prep_order(%State{}, %{o: :desc}, schema)
+  end
+
+  test "prep callback skips individual filters" do
+    schema =
+      Validate.schema!(ignored: [type: :string, prep: fn _ -> :skip end], name: [type: :string])
+
+    filters = [%{n: "ignored", v: ["anything"]}, %{n: "name", v: ["Bob"]}]
+
+    assert {:ok, %Filter.State{values: %{name: %{v: "Bob"}}, order: [{:asc, :name}]}} =
+             prep_state(schema, filters, [])
   end
 end
