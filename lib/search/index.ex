@@ -41,7 +41,16 @@ defmodule Rivet.Search do
 
   @callback search(user_args(), runtime_opts()) :: search_result()
 
-  @doc "Builds a WHERE expression for a prepared search column."
+  @doc """
+
+  Builds a WHERE expression for a prepared search column.
+
+  NOTE: Rivet.Search adds a default filter_expr that returns an error, so if
+  you do not want to define one you can leave it out. However this also means
+  you should place your filter_expr last in your module if you want to avoid
+  warnings that functions are out of order.
+
+  """
   @callback filter_expr(column :: atom(), filter :: search_filter()) :: filter_result()
 
   @doc "Creates the initial Ecto query before search filters are applied."
@@ -71,6 +80,7 @@ defmodule Rivet.Search do
 
     quote do
       @behaviour Rivet.Search
+      @before_compile Rivet.Search
 
       @search_schema Rivet.Search.Validate.schema!(unquote(schema))
       @search_default Rivet.Search.Validate.default_filters!(
@@ -114,6 +124,12 @@ defmodule Rivet.Search do
         do: Rivet.Search.build_filter_query_(__MODULE__, filters, opts)
 
       defoverridable build_filter_query: 2
+    end
+  end
+
+  defmacro __before_compile__(_env) do
+    quote do
+      def filter_expr(name, _), do: {:error, "Invalid filter column data (#{name})"}
     end
   end
 

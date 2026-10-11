@@ -128,4 +128,9 @@ defmodule Rivet.Test.Search.SearchTest do
     assert {:ok, %{success: false, reason: "Invalid column 'unknown'"}} =
              TestSearch.search(%{filter: [%{n: "unknown", v: ["bob"]}]})
   end
+
+  test "filter_expr fallback" do
+    assert {:error, "Invalid filter column data (unknown)"} =
+             TestSearch.filter_expr(:unknown, %{})
+  end
 end
