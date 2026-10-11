@@ -89,6 +89,7 @@ defmodule Rivet.Search do
       @search_model_name Rivet.Utils.Module.mod_basename(@search_model, :atom)
 
       import Ecto.Query
+      alias Rivet.Search.{Tools, Filter}
 
       @doc """
       Search module configuration values
