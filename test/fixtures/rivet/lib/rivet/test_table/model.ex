@@ -7,7 +7,7 @@ defmodule Rivet.TestTable do
 
   typed_schema "test_table" do
     field(:name, :string)
-    field(:status, :string)
+    field(:status, :integer)
     timestamps()
   end
 

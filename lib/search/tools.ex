@@ -73,7 +73,7 @@ defmodule Rivet.Search.Tools do
   def prep_enum_mine("mine", _, _), do: {:ok, :mine}
   def prep_enum_mine(a, b, c), do: prep_enum(a, b, c)
 
-  def prep_enum(value, _spec, enum) do
+  def prep_enum(value, _scheme, enum) do
     with :error <- enum.cast(value) do
       mod = Rivet.Utils.Module.mod_basename(enum) |> inspect()
       {:error, "Invalid #{mod}: '#{value}'"}

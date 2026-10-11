@@ -1,217 +1,203 @@
 defmodule Rivet.Search do
   @moduledoc """
 
-  Typical usage pattern:
+  Search columns(filters) on tables with a dynamic ecto query builder system.
 
-    @col_spec [
-      status: [type: :atom, list: :in],
-      name: [type: :glob],
-      owner: [type: :glob, key: :name, join: &fjoin_to_owner/3],
-      inserted_at: [type: :date, order: :only],
-      updated_at: [type: :date, order: :only]
-    ]
-
-    @default [[n: "name"]]
-
-    use Rivet.Search,
-      spec: @col_spec
-      default: @default,
-      build: &build_search_query/4
-
-
-  FILTERS
-  #######
-
-  a list of column filters are sent from the FE which determine the order plus
-  any filter arguments all at once. the order of each in the list defines
-  how to order the resulting columns as well.
-
-  Column filter sent from FE are single-letter keys (to keep it smaller):
-
-      'n' — column name  * required
-      'o' — order (a, d)   a=ascending, d=descending; default is `a`
-      'v' — [value,...]    Value used in filtering, as a list of strings.
-                           List is required even if only one element because
-                           of GraphQL only allowing for one type
-      'x' — operator       one of:
-
-            "is" equals, matching, or in a list (this is default if unspecified)
-            "no" not equals, matching, or not in list
-                 (note: the remaining only apply to numbers & dates)
-            "lt" Less than
-            "le" Less than or equal to
-            "gt" Greater than
-            "ge" Greater than or equal to
-
-  Example (no quotes on keys, only for sake of example):
-
-    [
-      {n: "location", o: "a", v: ["a-location-name"]},
-      {n: "serial", v: ["Q53"]},
-      {n: "loc"},
-      {n: "cond", v: ["failing", "servicing"], x: "no"},
-      {n: "sku"}
-    ]
-
-  SPEC
-  ####
-
-  Concurrently, a column "Spec" is defined on the backend code, which is used by
-  prep_filters. The spec defines how to parse the filters, and enriches a filter
-  struct to be used to build the query.
-
-  Spec is key/value map, where the key (atom) matches the name specified in the
-  filter (`n:` attribute). The value is a dict specification:
-
-      type: {type}   — see below for built-in types. You can add custom types by
-                       also defining prep and order.
-      list:          - (default: false), may also be :in, in which case the value
-                       must be a list and 'x in y' is used as the query.
-      key: :atom     — the key used to reference the data on the model. Used only
-                       when it does not match the spec's parent key.
-      name: <auto>   - auto generates to match the spec filter key, unless changed
-      join: &func/3  — function to call to build a join if defaults are not wanted
-       (or) {key, &func/3} — join function like above, but stored into an alt key
-                       on the filter (when two diff filters will alter the same
-                       order, like `:vlan` and `:vlan_id` — the latter can specify
-                       that it is just `:vlan` order).
-      prep: &func/2  - additional preparing of an arg/value beyond the built-ins
-      order: false   — if false, do not include in ordering (default: true)
-      order: :only   — if `:only` only use it for order, not anything else
-        (or) &func/4 — if it is a function, call that to generate the order value
-
-  Input Validation
-  ################
-
-  Input validation happens in two cycles. The type can provide a function hook
-  for doing complex input validation & handling (such as with locations), or
-  it can use a built-in type. The built-in types are very simple. For complex
-  things, use the hooked typing.
-
-  Built-in types:
-
-     :string   - just take it verbatim as a string
-     :glob     - trim & wrap it in % # todo: strip out dangerous things?
-     :uuid     - match uuid pattern
-     :atom     - turn it into an existing atom (not bespoke atom)
-     :integer  — turn it into an integer
-     :float    — turn it into a float
-     :date     — turn it into a datetime
-     :location — pass-thru when a location parse is used in pre-processing
-
-  Schema for GraphQL should include:
-
-  enum :filter_order do
-    value(:a)
-    value(:d)
-  end
-
-  enum :filter_operator do
-    value(:is)
-    value(:no)
-    value(:lt)
-    value(:le)
-    value(:gt)
-    value(:ge)
-  end
-
-  input_object :filter_column do
-    field(:n, non_null(:string))
-    field(:v, list_of(:string))
-    field(:o, :filter_order)
-    field(:x, :filter_operator, default_value: :is)
-  end
-
-  then it can be used simply as:
-
-    arg(:filter, list_of(:filter_column), default_value: [])
-
+  See the [Rivet Search Guide](search/README.md) for configuration, examples,
+  and GraphQL integration.
 
   """
 
-  # TODO: Make behaviors for the callbacks
+  @type search_filter :: %{
+          required(:n) => String.t(),
+          required(:o) => :asc | :desc,
+          required(:x) => atom(),
+          required(:v) => term()
+        }
+  @type search_filters :: list(search_filter())
+
+  @type user_args :: map()
+  @type runtime_opts :: keyword()
+  @type query_result :: {:ok, Ecto.Query.t()} | {:error, term()}
+  @type filter_result :: {:ok, Ecto.Query.dynamic_expr()} | :skip | {:error, term()}
+  @type status_map :: %{
+          required(:success) => boolean(),
+          optional(:message) => String.t() | nil,
+          optional(:total) => non_neg_integer() | nil,
+          optional(:matching) => non_neg_integer() | nil,
+          optional(:search_id) => String.t() | nil,
+          optional(atom()) => term()
+        }
+
+  @type status_result :: %{
+          required(:success) => boolean(),
+          required(:status) => status_map(),
+          optional(:result) => term(),
+          optional(:results) => list(),
+          optional(atom()) => term()
+        }
+
+  @type search_result :: {:ok, status_result()} | {:error, atom() | String.t()}
+
+  @callback search(user_args(), runtime_opts()) :: search_result()
+
+  @doc "Builds a WHERE expression for a prepared search column."
+  @callback filter_expr(column :: atom(), filter :: search_filter()) :: filter_result()
+
+  @doc "Creates the initial Ecto query before search filters are applied."
+  @callback base_query(opts :: keyword()) :: {:ok, Ecto.Query.t()} | {:error, term()}
+
+  @doc "Applies application-specific modifications to an enriched search query."
+  @callback build_filter_query(search_filters(), runtime_opts()) :: query_result()
+
+  @optional_callbacks base_query: 1, build_filter_query: 2
 
   defmacro __using__(opts) do
     # this is compile-time stuff so not coverage tracked -BJG
     # coveralls-ignore-start
-    spec = Keyword.fetch!(opts, :spec)
-    build = Keyword.fetch!(opts, :build)
-    default = Keyword.get(opts, :default, [])
+    schema = Keyword.fetch!(opts, :schema)
+    default_filters = Keyword.get(opts, :default_filters, [])
 
-    limits = [soft: 25, hard: 400]
-    [{:soft, soft}, {:hard, hard}] = Application.get_env(:rivet, :search_limit, limits)
+    limits = Application.get_env(:rivet, :search_limit, []) |> Map.new()
+    limits = Map.merge(%{soft: 25, hard: 400}, limits)
+    soft_limit = Keyword.get(opts, :soft_limit, limits.soft)
+    hard_limit = Keyword.get(opts, :hard_limit, limits.hard)
 
-    soft_limit = Keyword.get(opts, :soft_limit, soft)
-    hard_limit = Keyword.get(opts, :hard_limit, hard)
+    model = Keyword.get(opts, :model)
 
     # coveralls-ignore-stop
 
     quote do
+      @behaviour Rivet.Search
+
+      @search_schema Rivet.Search.Validate.schema(unquote(schema))
+      @search_default Rivet.Search.Validate.defaults(unquote(default_filters), @search_schema)
+
       @search_soft_limit unquote(soft_limit)
       @search_hard_limit unquote(hard_limit)
-      @search_spec Rivet.Search.Validate.spec(unquote(spec))
-      @search_default Rivet.Search.Validate.defaults(unquote(default), @search_spec)
-      @search_parent Rivet.Utils.Module.mod_parent(__MODULE__)
 
-      def search_default!(), do: @search_default
-      def search_spec!(), do: @search_spec
+      @search_model unquote(model)
+      @search_model if is_nil(@search_model),
+                      do: Rivet.Utils.Module.mod_parent(__MODULE__),
+                      else: @search_model
 
-      def search(%{filter} = args) when is_list(filter) do
-        unquote(build).(args, search_spec!(), search_default!())
-        |> query_with_status(args)
-      end
+      @search_model_name Rivet.Utils.Module.mod_basename(@search_model, :atom)
 
-      def search(%{id}) when not is_nil(id),
-        do: @search_parent.one(id: id) |> Rivet.Search.Result.status_results()
+      import Ecto.Query
 
-      def search(_), do: {:error, :args}
+      @doc """
+      Search module configuration values
+      """
+      def get_schema(), do: @search_schema
+      def get_default_filters(), do: @search_default
+      def get_soft_limit(), do: @search_soft_limit
+      def get_hard_limit(), do: @search_hard_limit
+      def get_model(), do: @search_model
 
-      def query_with_status(query, args, opts \\ []) do
-        Rivet.Search.query_with_status_(
-          {@search_parent, @search_soft_limit, @search_hard_limit},
-          query,
-          args,
-          opts
-        )
-      end
+      @doc """
+      See search/README.md
+      """
+      def search(filters, opts \\ [matching: true]),
+        do: Rivet.Search.search_(__MODULE__, filters, opts)
+
+      def base_query(_opts), do: {:ok, from(@search_model, as: ^@search_model_name)}
+      defoverridable base_query: 1
+
+      def build_filter_query(filters, opts),
+        do: Rivet.Search.build_filter_query_(__MODULE__, filters, opts)
+
+      defoverridable build_filter_query: 2
     end
   end
 
   import Ecto.Query
-  alias Rivet.Search.Result
+  import Rivet.Guards
+  alias Rivet.Search.{Result, Filter}
 
   ##############################################################################
-  def query_with_status_(meta, {:ok, %Ecto.Query{} = query}, args, opts),
-    do: query_with_status__inner(meta, query, args, opts)
+  @doc """
 
-  def query_with_status_(meta, %Ecto.Query{} = query, args, opts),
-    do: query_with_status__inner(meta, query, args, opts)
+  Executes a search using the supplied search module.
 
-  def query_with_status_(_, {:error, error}, _, _), do: Result.build_error(error)
+  Options:
+    * `:matching` - count all matching records (default: true)
+    * `:total` - count all records in the underlying table (default: false)
+    * `:hard_limit` - runtime override of compile-time hard_limit
+    * `:soft_limit` - runtime override of compile-time soft_limit
 
-  ####
-  defp query_with_status__inner({parent, soft, hard}, %Ecto.Query{} = query, args, opts) do
-    {_, table} = query.from.source
-    total = get_total(parent, table, opts)
-    limit = get_limit(args, hard, soft)
-    matching = parent.aggregate(query, :count)
+  """
+  def search_(searcher, %{filter} = user_args, opts) when is_list(filter) do
+    case searcher.build_filter_query(filter, opts) do
+      {:ok, %Ecto.Query{} = query} ->
+        model = searcher.get_model()
+        query_limit = get_limit(searcher, user_args[:limit], opts)
 
-    parent.all(from(i in query, limit: ^limit))
-    |> Result.status_results(%{total, matching})
-  end
+        wants_matching? = opts[:matching]
+        matching = get_matching(wants_matching?, model, query)
+        query_offset = get_offset(wants_matching?, user_args[:offset])
 
-  ##############################################################################
-  defp get_limit(%{limit: limit}, hard, soft) when is_integer(limit) do
-    cond do
-      limit < 0 -> soft
-      limit >= hard -> hard
-      true -> limit
+        total = get_total(opts[:total], model)
+
+        query
+        |> limit(^query_limit)
+        |> add_offset(query_offset)
+        |> model.all()
+        |> Result.status_results(%{matching, total, offset: query_offset, limit: query_limit})
+
+      {:error, e} ->
+        Result.build_error(e)
     end
   end
 
-  defp get_limit(_, _, soft), do: soft
+  def search_(searcher, %{id}, _opts) when is_uuid(id),
+    do: searcher.get_model().one(id: id) |> Rivet.Search.Result.status_results()
+
+  def search_(_, _, _), do: {:error, :args}
 
   ##############################################################################
-  defp get_total(_, _, total: count) when is_integer(count), do: count
-  defp get_total(parent, query, _), do: parent.aggregate(query, :count)
+  defp get_limit(searcher, limit, opts) when is_integer(limit) do
+    if limit < 0 do
+      opts[:soft_limit] || searcher.get_soft_limit()
+    else
+      hard = opts[:hard_limit] || searcher.get_hard_limit()
+
+      if limit >= hard do
+        hard
+      else
+        limit
+      end
+    end
+  end
+
+  # no limit in args, default to soft
+  defp get_limit(searcher, _, _), do: searcher.get_soft_limit()
+
+  # they want a count of all matching results (not limited)
+  defp get_offset(true, offset) when is_number(offset) and offset > 0, do: offset
+  defp get_offset(_, _), do: nil
+
+  ##############################################################################
+  # they want a full-table count
+  defp get_total(true, model), do: model.aggregate(model, :count)
+  defp get_total(_, _), do: nil
+
+  # they want a count of all matching results (not limited)
+  defp get_matching(true, model, query), do: model.aggregate(query, :count)
+  defp get_matching(_, _, _), do: nil
+
+  ##############################################################################
+  def build_filter_query_(searcher, filters, opts) when is_list(filters) do
+    def_filters = searcher.get_default_filters()
+    schema = searcher.get_schema()
+
+    with {:ok, state} <- Filter.Prep.prep_state(schema, filters, def_filters),
+         {:ok, query} = searcher.base_query(opts),
+         {:ok, query} <- Filter.Join.add_joins(query, state),
+         {:ok, query} <- Filter.Expr.build_expr(query, state, searcher),
+         do: Filter.Order.column_order(query, state)
+  end
+
+  ##############################################################################
+  defp add_offset(query, nil), do: query
+  defp add_offset(query, n) when is_number(n), do: offset(query, ^n)
 end

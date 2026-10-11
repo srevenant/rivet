@@ -3,7 +3,7 @@ defmodule Rivet.Search.Filter.Order do
 
   Prepares and applies column ordering to Ecto queries.
 
-  Custom order callbacks receive `(state, direction, filter, spec)` returning:
+  Custom order callbacks receive `(state, direction, filter, schema)` returning:
 
     `{:ok, keyword_order}`
     `{:error, reason}`
@@ -41,8 +41,8 @@ defmodule Rivet.Search.Filter.Order do
   def prep_order(%Filter.State{order}, _, %{order: false}), do: {:ok, order}
 
   # callback for order; note: compile-time verification already assured it was arity/4
-  def prep_order(state, fltr, %{name, order: ord_func} = spec) when is_function(ord_func) do
-    case ord_func.(state, fltr.o, fltr, spec) do
+  def prep_order(state, fltr, %{name, order: ord_func} = scheme) when is_function(ord_func) do
+    case ord_func.(state, fltr.o, fltr, scheme) do
       {:ok, o} = pass ->
         if Keyword.keyword?(o), do: pass, else: {:error, "Invalid order result for #{name}"}
 
@@ -55,9 +55,9 @@ defmodule Rivet.Search.Filter.Order do
   end
 
   # other ordering scenarios; filter order is already parsed and takes precedence
-  def prep_order(%Filter.State{order}, fltr, %{name, key: cname} = spec) do
+  def prep_order(%Filter.State{order}, fltr, %{name, key: cname} = scheme) do
     value =
-      case spec[:join] do
+      case scheme[:join] do
         nil -> {fltr.o, cname}
         {binding, _} -> {fltr.o, binding, cname}
         _ -> {fltr.o, name, cname}

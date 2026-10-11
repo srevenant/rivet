@@ -28,43 +28,43 @@ defmodule Rivet.Test.Search.Filter.OrderTest do
   test "prep_order ignores order: false" do
     existing = [name: {:asc, :name}]
     state = %State{order: existing}
-    spec = %{name: :status, key: :status, order: false}
+    schema = %{name: :status, key: :status, order: false}
 
-    assert {:ok, ^existing} = Order.prep_order(state, %{o: :desc}, spec)
+    assert {:ok, ^existing} = Order.prep_order(state, %{o: :desc}, schema)
   end
 
   test "prep_order supports fixed directions" do
     state = %State{}
 
     # Fixed descending overrides the frontend's ascending request.
-    spec = %{name: :name, key: :name, order: :desc}
-    assert {:ok, [name: {:asc, :name}]} = Order.prep_order(state, %{o: :asc}, spec)
-    spec = %{spec | order: :asc}
-    assert {:ok, [name: {:desc, :name}]} = Order.prep_order(state, %{o: :desc}, spec)
+    schema = %{name: :name, key: :name, order: :desc}
+    assert {:ok, [name: {:asc, :name}]} = Order.prep_order(state, %{o: :asc}, schema)
+    schema = %{schema | order: :asc}
+    assert {:ok, [name: {:desc, :name}]} = Order.prep_order(state, %{o: :desc}, schema)
   end
 
   test "prep_order supports a custom order callback" do
-    spec = %{
+    schema = %{
       name: :name,
       key: :name,
-      order: fn state, :desc, _, spec ->
-        {:ok, Keyword.put(state.order, spec.name, {:desc, spec.key})}
+      order: fn state, :desc, _, schema ->
+        {:ok, Keyword.put(state.order, schema.name, {:desc, schema.key})}
       end
     }
 
-    assert {:ok, [name: {:desc, :name}]} = Order.prep_order(%State{}, %{o: :desc}, spec)
+    assert {:ok, [name: {:desc, :name}]} = Order.prep_order(%State{}, %{o: :desc}, schema)
   end
 
   test "prep_order propagates custom callback errors" do
-    spec = %{name: :name, key: :name, order: fn _, _, _, _ -> {:error, :not_allowed} end}
-    assert {:error, :not_allowed} = Order.prep_order(%State{}, %{o: :asc}, spec)
+    schema = %{name: :name, key: :name, order: fn _, _, _, _ -> {:error, :not_allowed} end}
+    assert {:error, :not_allowed} = Order.prep_order(%State{}, %{o: :asc}, schema)
   end
 
   test "prep_order rejects malformed callback results" do
-    spec = %{name: :name, key: :name, order: fn _, _, _, _ -> :invalid end}
+    schema = %{name: :name, key: :name, order: fn _, _, _, _ -> :invalid end}
 
     assert {:error, "External order function returned invalid shape for name"} =
-             Order.prep_order(%State{}, %{o: :asc}, spec)
+             Order.prep_order(%State{}, %{o: :asc}, schema)
   end
 
   test "coverage" do

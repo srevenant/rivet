@@ -4,10 +4,10 @@ defmodule Rivet.Search.Filter.Prep do
   Prepares search filters into a normalized `%Filter.State{}`.
 
   User-supplied filters override defaults by column name. Values are validated
-  and converted according to their column specs.
+  and converted according to their column schema.
 
   Missing values normalize to `[:no_value]` unless transformed by custom
-  prep function in the spec. A custom prep function can return `:skip` to
+  prep function in the scheme. A custom prep function can return `:skip` to
   exclude an individual filter entirely.
 
   """
@@ -19,13 +19,13 @@ defmodule Rivet.Search.Filter.Prep do
   ####################
 
   @spec prep_state(map(), [map()], [map()], map()) :: {:ok, Filter.State.t()} | {:error, term()}
-  def prep_state(specs, cols, default_filter, meta \\ %{})
+  def prep_state(schema, cols, default_filter, meta \\ %{})
 
-  def prep_state(specs, [], default_filter, meta),
-    do: prep_state_reducer(%Filter.State{specs, meta}, default_filter)
+  def prep_state(schema, [], default_filter, meta),
+    do: prep_state_reducer(%Filter.State{schema, meta}, default_filter)
 
-  def prep_state(specs, cols, default_filter, meta),
-    do: prep_state_reducer(%Filter.State{specs, meta}, enrich_defaults(cols, default_filter))
+  def prep_state(schema, cols, default_filter, meta),
+    do: prep_state_reducer(%Filter.State{schema, meta}, enrich_defaults(cols, default_filter))
 
   # insert a default filter if they don't already exist in cols
   # ... if we want defaults first not user stuff first, flip ++ cols to the end
@@ -41,15 +41,15 @@ defmodule Rivet.Search.Filter.Prep do
 
   ####################
   defp prep_state_reducer(state, [%{n: name} = fltr | rest]) do
-    with {:ok, spec} <- get_filter_spec(name, state.specs),
-         {:ok, fltr} <- init_filter(fltr, spec) do
-      case validate_type(state, spec, fltr) do
+    with {:ok, scheme} <- get_filter_scheme(name, state.schema),
+         {:ok, fltr} <- init_filter(fltr, scheme) do
+      case validate_type(state, scheme, fltr) do
         :skip ->
           prep_state_reducer(state, rest)
 
         {:ok, state, fltr} ->
-          with {:ok, order} <- Filter.Order.prep_order(state, fltr, spec),
-               {:ok, joins} <- Filter.Join.prep_join(state.joins, spec),
+          with {:ok, order} <- Filter.Order.prep_order(state, fltr, scheme),
+               {:ok, joins} <- Filter.Join.prep_join(state.joins, scheme),
                do: prep_state_reducer(%{state | order, joins}, rest)
 
         {:error, _} = error ->
@@ -65,12 +65,12 @@ defmodule Rivet.Search.Filter.Prep do
     do: {:error, "Invalid search filter: missing column name"}
 
   ####################
-  defp badcol(name), do: {:error, "Invalid column '#{name}' — not in spec"}
+  defp badcol(name), do: {:error, "Invalid column '#{name}'"}
 
-  defp get_filter_spec(name, specs) do
+  defp get_filter_scheme(name, schema) do
     case as_existing_atom(name) do
       {:ok, name} ->
-        case specs[name] do
+        case schema[name] do
           nil ->
             badcol(name)
 
@@ -88,7 +88,7 @@ defmodule Rivet.Search.Filter.Prep do
              }}
         end
 
-      # not valid pre-existing atom, thus can't be in the spec
+      # not valid pre-existing atom, thus can't be in the scheme
       :error ->
         badcol(name)
     end
@@ -96,9 +96,9 @@ defmodule Rivet.Search.Filter.Prep do
 
   ##############################################################################
   @default_filter %{v: nil, x: :is, o: nil}
-  defp init_filter(f, spec) do
+  defp init_filter(f, scheme) do
     f = Map.merge(@default_filter, f)
-    with {:ok, o} <- resolve_order(f.o, spec[:order]), do: init_value(%{f | o})
+    with {:ok, o} <- resolve_order(f.o, scheme[:order]), do: init_value(%{f | o})
   end
 
   ###############
@@ -121,7 +121,7 @@ defmodule Rivet.Search.Filter.Prep do
   defp bad_value_error(v), do: {:error, "Invalid search filter value: #{inspect(v)}"}
 
   ##############################################################################
-  # no given order, take spec :desc setting
+  # no given order, take schema :desc setting
   def resolve_order(nil, d) when d in [:asc, :desc], do: {:ok, d}
   def resolve_order(nil, _), do: {:ok, :asc}
   def resolve_order(:a, _), do: {:ok, :asc}
@@ -131,21 +131,21 @@ defmodule Rivet.Search.Filter.Prep do
   ##############################################################################
   defp validate_type(state, %{order: :only}, f), do: {:ok, state, f}
 
-  defp validate_type(state, spec, %{v: value} = fltr) do
-    with {:ok, value} <- validate_type_reducer(value, spec, [], state) do
+  defp validate_type(state, scheme, %{v: value} = fltr) do
+    with {:ok, value} <- validate_type_reducer(value, scheme, [], state) do
       fltr = %{fltr | v: value}
-      {:ok, %{state | values: Map.put(state.values, spec.name, fltr)}, fltr}
+      {:ok, %{state | values: Map.put(state.values, scheme.name, fltr)}, fltr}
     end
   end
 
   ##########
-  defp validate_type_reducer([v | rest], spec, out, state) do
-    with {:ok, v} <- validate_type_value(v, spec, state),
-         do: validate_type_reducer(rest, spec, [v | out], state)
+  defp validate_type_reducer([v | rest], scheme, out, state) do
+    with {:ok, v} <- validate_type_value(v, scheme, state),
+         do: validate_type_reducer(rest, scheme, [v | out], state)
   end
 
-  defp validate_type_reducer(:no_value = v, spec, out, state) do
-    with {:ok, v} <- validate_type_value(v, spec, state),
+  defp validate_type_reducer(:no_value = v, scheme, out, state) do
+    with {:ok, v} <- validate_type_value(v, scheme, state),
          do: {:ok, [v | out]}
   end
 
@@ -172,11 +172,11 @@ defmodule Rivet.Search.Filter.Prep do
   defp validate_type_value(value, %{prep: func}, _) when is_function(func, 1),
     do: func.(value)
 
-  defp validate_type_value(value, %{prep: func} = spec, _) when is_function(func, 2),
-    do: func.(value, spec)
+  defp validate_type_value(value, %{prep: func} = scheme, _) when is_function(func, 2),
+    do: func.(value, scheme)
 
-  defp validate_type_value(value, %{prep: func} = spec, state) when is_function(func, 3),
-    do: func.(value, spec, state)
+  defp validate_type_value(value, %{prep: func} = scheme, state) when is_function(func, 3),
+    do: func.(value, scheme, state)
 
   defp validate_type_value(:no_value, _, _), do: {:ok, :no_value}
 
@@ -223,8 +223,8 @@ defmodule Rivet.Search.Filter.Prep do
       else: {:error, "Invalid value for #{key}: not a uuid"}
   end
 
-  defp validate_type_value(_value, badspec, _) do
+  defp validate_type_value(_value, badscheme, _) do
     # this is a literal code problem and shouldn't happen in general use
-    {:error, "Bad item spec? (#{inspect(badspec)})"}
+    {:error, "Bad search scheme? (#{inspect(badscheme)})"}
   end
 end

@@ -1,28 +1,28 @@
 defmodule Rivet.Search.Validate do
   @moduledoc """
 
-  Compile-time validation and normalization of search specifications and defaults.
+  Compile-time validation and normalization of search schema and defaults.
 
   These raise errors rather than returning tuples because its a compile-time problem.
 
   """
 
   @builtin_types [:string, :glob, :uuid, :atom, :integer, :float, :date]
-  @spec_options [:type, :list, :key, :join, :prep, :order]
+  @schema_options [:type, :list, :key, :join, :prep, :order]
 
   ##############################################################################
-  @spec spec(keyword() | map()) :: map()
-  def spec(spec) do
-    spec = config_map!(spec, "Search spec")
+  @spec schema(keyword() | map()) :: map()
+  def schema(schema) do
+    schema = config_map!(schema, "Search schema")
 
-    Map.new(spec, fn {name, raw_opts} ->
+    Map.new(schema, fn {name, raw_opts} ->
       required!(
         is_atom(name) and not is_nil(name),
         "Search column is not an atom: #{inspect(name)}"
       )
 
       opts = config_map!(raw_opts, "Search column #{inspect(name)}")
-      unknown = Map.keys(opts) -- @spec_options
+      unknown = Map.keys(opts) -- @schema_options
 
       required!(unknown == [], "#{name}: unknown options #{inspect(unknown)}")
       validate_column!(name, opts)
@@ -72,8 +72,8 @@ defmodule Rivet.Search.Validate do
 
   ##############################################################################
   @spec defaults(list(), map()) :: [map()]
-  def defaults(default, spec) when is_list(default) and is_map(spec) do
-    known = Enum.map(Map.keys(spec), &Atom.to_string/1)
+  def defaults(default, schema) when is_list(default) and is_map(schema) do
+    known = Enum.map(Map.keys(schema), &Atom.to_string/1)
 
     defaults =
       default

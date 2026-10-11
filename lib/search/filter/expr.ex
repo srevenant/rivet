@@ -5,34 +5,28 @@ defmodule Rivet.Search.Filter.Expr do
   @doc """
 
   Applies filter expressions to a query in an AND relationship (no OR support).
-  The builder receives `{column, filter}` and returns:
-
-     `{:ok, expression}`
-     `:skip`
-     `{:error, reason}`
-
   Filters with `[:no_value]` are skipped.
 
   """
-  @spec build_expr(Ecto.Query.t(), Filter.State.t(), function()) ::
+  @spec build_expr(Ecto.Query.t(), Filter.State.t(), atom()) ::
           {:ok, Ecto.Query.t()} | {:error, term()}
-  def build_expr(query, %Filter.State{values: values}, builder) when is_function(builder) do
-    reduce_filter_expr(&and_expr/2, builder, values)
+  def build_expr(query, %Filter.State{values: values}, searcher) when is_atom(searcher) do
+    reduce_filter_expr(&and_expr/2, searcher, values)
     |> finish_filter_expr(query, fn q, e -> where(q, [], ^e) end)
   end
 
   ##############################################################################
-  def reduce_filter_expr(add, builder, list_as_map) when is_map(list_as_map),
-    do: reduce_filter_expr_(nil, add, builder, Map.to_list(list_as_map) |> Enum.reverse())
+  def reduce_filter_expr(add, searcher, list_as_map) when is_map(list_as_map),
+    do: reduce_filter_expr_(nil, add, searcher, Map.to_list(list_as_map) |> Enum.reverse())
 
   ####### inner
-  defp reduce_filter_expr_(expr, add, builder, [{_, %{v: [:no_value]}} | rest]),
-    do: reduce_filter_expr_(expr, add, builder, rest)
+  defp reduce_filter_expr_(expr, add, searcher, [{_, %{v: [:no_value]}} | rest]),
+    do: reduce_filter_expr_(expr, add, searcher, rest)
 
-  defp reduce_filter_expr_(expr, add, builder, [elem | rest]) do
-    case builder.(elem) do
-      :skip -> reduce_filter_expr_(expr, add, builder, rest)
-      {:ok, nexpr} -> reduce_filter_expr_(add.(expr, nexpr), add, builder, rest)
+  defp reduce_filter_expr_(expr, add, searcher, [{column, filter} | rest]) do
+    case searcher.filter_expr(column, filter) do
+      :skip -> reduce_filter_expr_(expr, add, searcher, rest)
+      {:ok, nexpr} -> reduce_filter_expr_(add.(expr, nexpr), add, searcher, rest)
       {:error, _} = error -> error
     end
   end
@@ -52,8 +46,8 @@ end
 ### Keep around for a bit incase we ever want to do an 'or' option
 # def build_or_expr({:error, _} = error, _, _), do: error
 #
-# def build_or_expr(query, builder, %{excludes: excludes}) do
-#   reduce_filter_expr(&or_expr/2, builder, excludes)
+# def build_or_expr(query, searcher, %{excludes: excludes}) do
+#   reduce_filter_expr(&or_expr/2, searcher, excludes)
 #   |> finish_filter_expr(query, fn q, e ->
 #     e = dynamic([], not (^e))
 #     where(q, [], ^e)

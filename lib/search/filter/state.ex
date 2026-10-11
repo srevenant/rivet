@@ -15,9 +15,9 @@ defmodule Rivet.Search.Filter.State do
           values: map(),
           joins: map(),
           joined: map(),
-          specs: map(),
+          schema: map(),
           meta: map()
         }
 
-  defstruct order: [], values: %{}, joins: %{}, joined: %{}, specs: %{}, meta: %{}
+  defstruct order: [], values: %{}, joins: %{}, joined: %{}, schema: %{}, meta: %{}
 end
