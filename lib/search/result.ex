@@ -1,11 +1,18 @@
 defmodule Rivet.Search.Result do
   @moduledoc """
-  status_result here populates both the old and new way of status results, so
-  it can be used in either resolver shape. Please stick with only one graphql
-  result shape.
+
+  Normalizes search results into Rivet-GraphQL status responses.
+
+  Supports both legacy nested `status` and newer top-level `success` fields
+  during the transition. Please stick with only one graphql result shape.
+
+  Authentication errors are returned directly rather than wrapped.
+
   """
 
-  # coveralls-ignore-next-line
+  @doc """
+  iex> assert true = has_status?(%{success: 1})
+  """
   defguard has_status?(x) when is_map_key(x, :status) or is_map_key(x, :success)
 
   @doc """
@@ -24,6 +31,9 @@ defmodule Rivet.Search.Result do
   {:ok, %{status: %{success: true}, result: "narf", success: true}}
   ```
   """
+  @spec status_result({:ok, term()} | {:error, term()}) ::
+          {:ok, map()} | {:error, term()}
+
   def status_result({:ok, result} = pass) when has_status?(result), do: pass
   def status_result({:ok, result}), do: build_success(%{result})
   def status_result({:error, error}), do: build_error(error)
@@ -56,6 +66,7 @@ defmodule Rivet.Search.Result do
   {:ok, %{status: %{success: false, message: "boop"}, reason: "boop", success: false}}
   ```
   """
+  @spec status_results({:ok, term()} | {:error, term()}) :: {:ok, map()} | {:error, term()}
   def status_results({:ok, result} = pass) when has_status?(result), do: pass
   def status_results({:ok, results}) when is_list(results), do: build_success(%{results})
   def status_results({:ok, result}), do: build_success(%{results: [result]})
@@ -93,7 +104,7 @@ defmodule Rivet.Search.Result do
   def build_success(base, params) do
     success = true
     status = Map.put(params, :success, success)
-    {:ok, Map.merge(base, status) |> Map.put(:status, status)}
+    {:ok, Map.merge(status, base) |> Map.put(:status, status)}
   end
 
   ##############################################################################

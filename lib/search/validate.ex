@@ -1,7 +1,7 @@
 defmodule Rivet.Search.Validate do
   @moduledoc """
 
-  Compile-time validation of specs, vs Runtime 'prep'
+  Compile-time validation and normalization of search specifications and defaults.
 
   These raise errors rather than returning tuples because its a compile-time problem.
 
@@ -11,11 +11,15 @@ defmodule Rivet.Search.Validate do
   @spec_options [:type, :list, :key, :join, :prep, :order]
 
   ##############################################################################
+  @spec spec(keyword() | map()) :: map()
   def spec(spec) do
     spec = config_map!(spec, "Search spec")
 
     Map.new(spec, fn {name, raw_opts} ->
-      required!(is_atom(name), "Search column is not an atom: #{inspect(name)}")
+      required!(
+        is_atom(name) and not is_nil(name),
+        "Search column is not an atom: #{inspect(name)}"
+      )
 
       opts = config_map!(raw_opts, "Search column #{inspect(name)}")
       unknown = Map.keys(opts) -- @spec_options
@@ -39,15 +43,9 @@ defmodule Rivet.Search.Validate do
       "#{name}: invalid type #{inspect(opts[:type])} (custom types need prep)"
     )
 
-    required!(
-      opts[:list] in [nil, false, :in],
-      "#{name}: list must be false or :in"
-    )
+    required!(opts[:list] in [nil, false, :in], "#{name}: list must be false or :in")
 
-    required!(
-      is_nil(opts[:key]) or is_atom(opts[:key]),
-      "#{name}: key must be an atom"
-    )
+    required!(is_nil(opts[:key]) or is_atom(opts[:key]), "#{name}: key must be an atom")
 
     required!(
       valid_join?(opts[:join]),
@@ -66,10 +64,14 @@ defmodule Rivet.Search.Validate do
   ##############################################################################
   defp valid_join?(nil), do: true
   defp valid_join?(fun) when is_function(fun, 3), do: true
-  defp valid_join?({name, fun}) when is_atom(name) and is_function(fun, 3), do: true
+
+  defp valid_join?({name, fun}) when is_atom(name) and not is_nil(name) and is_function(fun, 3),
+    do: true
+
   defp valid_join?(_), do: false
 
   ##############################################################################
+  @spec defaults(list(), map()) :: [map()]
   def defaults(default, spec) when is_list(default) and is_map(spec) do
     known = Enum.map(Map.keys(spec), &Atom.to_string/1)
 
@@ -87,8 +89,12 @@ defmodule Rivet.Search.Validate do
           end
 
         required!(name in known, "Search default: unknown column #{inspect(name)}")
-        required!(is_nil(f[:v]) or is_list(f[:v]), "#{name}: v must be a list")
         required!(f[:o] in [nil, :a, :d], "#{name}: invalid order #{inspect(f[:o])}")
+
+        required!(
+          is_nil(f[:v]) or (is_list(f[:v]) and Enum.all?(f[:v], &is_binary/1)),
+          "#{name}: v must be a list of strings"
+        )
 
         Map.put(f, :n, name)
       end)

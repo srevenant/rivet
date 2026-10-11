@@ -5,6 +5,7 @@ defmodule Rivet.Migrations.TestTable.Base do
     create table(:test_table, primary_key: false) do
       add(:id, :uuid, primary_key: true)
       add(:name, :string)
+      add(:status, :smallint)
       timestamps()
     end
   end

@@ -1,7 +1,12 @@
-defmodule Test.Rivet.Search.Filter.PrepTest do
+defmodule Rivet.Test.Search.Filter.PrepTest do
   use Rivet.Test.Case, async: true
-  alias Rivet.Search.Filter
+  alias Rivet.Search.{Filter, Validate}
+  alias Rivet.Search.Filter.{State, Order}
   import Filter.Prep, only: [prep_state: 3]
+
+  setup do
+    {:ok, start: DateTime.utc_now()}
+  end
 
   test "prep_state" do
     assert {:error, "Bad item spec?" <> _} =
@@ -10,17 +15,13 @@ defmodule Test.Rivet.Search.Filter.PrepTest do
     assert {:error, "Invalid column 'a'" <> _} =
              prep_state(%{z: %{type: :boop}}, [%{n: "a", v: ["asdf"]}], [])
 
-    assert {:error, "Invalid search filter param value (not a list?) \"asdf\""} =
+    assert {:error, "Invalid search filter value: \"asdf\""} =
              prep_state(%{a: %{type: :string}}, [%{n: "a", v: "asdf"}], [])
 
-    # only ordering, no value
-    # assert {:ok, %Filter.State{order: [asc: :a]}} =
-    #          prep_state(%{a: %{type: :string, list: :in}}, [%{n: "a"}], [])
-    #
-    # assert {:ok, %Filter.State{order: [desc: :a]}} =
-    #          prep_state(%{a: %{type: :string}}, [%{n: "a", o: :d}], [])
+    assert {:error, "Invalid search filter value: [\"valid\", 42]"} =
+             prep_state(%{a: %{type: :string}}, [%{n: "a", v: ["valid", 42]}], [])
 
-    assert {:ok, :asc} = Filter.Order.filter_order(nil)
+    assert {:ok, :asc} = Filter.Prep.resolve_order(nil, nil)
 
     assert {:error, "Invalid value for a: (float) \"no\""} =
              prep_state(%{a: %{type: :float}}, [%{n: "a", v: ["no"]}], [])
@@ -56,7 +57,7 @@ defmodule Test.Rivet.Search.Filter.PrepTest do
       %{n: "k1"},
       %{n: "k2", o: :d, v: ["10"]},
       %{n: "k3", o: :a, v: ["narf"], x: :no},
-      %{n: "k4", o: :d, v: ["bork"]},
+      %{n: "k4", o: :d, v: [" bork%"]},
       %{n: "k1", v: [""]},
       %{n: "k5", v: [uuid]},
       %{n: "k6", v: ["30.0"]},
@@ -64,7 +65,7 @@ defmodule Test.Rivet.Search.Filter.PrepTest do
     ]
 
     # check default w/no filters at all
-    # assert {:ok, %{order: [_]}} = prep_state(col_spec, [], [%{n: "k3", o: :a}])
+    # assert {:ok, %{order: [_]}} = prep_state(col_spec, [], [%{n: "k3", o: :asc}])
 
     assert {:ok,
             %Filter.State{
@@ -78,16 +79,134 @@ defmodule Test.Rivet.Search.Filter.PrepTest do
                 {:asc, :k7}
               ],
               values: %{
-                k2: %{v: 10, x: :is, n: "k2", o: :d},
-                k3: %{v: "narf", x: :no, n: "k3", o: :a},
-                k4: %{v: "%bork%", x: :is, n: "k4", o: :d},
-                k5: %{v: ^uuid, x: :is, n: "k5", o: :a},
-                k6: %{v: 30.0, x: :is, n: "k6", o: :a},
-                k7: %{v: ~U[2025-05-08 17:34:15.113668Z], x: :is, n: "k7", o: :a}
+                k2: %{v: 10, x: :is, n: "k2", o: :desc},
+                k3: %{v: "narf", x: :no, n: "k3", o: :asc},
+                k4: %{v: "%bork\\%%", x: :is, n: "k4", o: :desc},
+                k5: %{v: ^uuid, x: :is, n: "k5", o: :asc},
+                k6: %{v: 30.0, x: :is, n: "k6", o: :asc},
+                k7: %{v: ~U[2025-05-08 17:34:15.113668Z], x: :is, n: "k7", o: :asc}
               }
             }} = prep_state(col_spec, filters, [])
 
     assert {:error, "Invalid value for k5: not a uuid"} =
              prep_state(col_spec, [%{n: "k5", v: ["bad"]}], [])
+
+    assert {:ok, %{values: %{k4: %{v: [:no_value]}}}} =
+             prep_state(col_spec, [%{n: "k4", v: ["   "]}], [])
+
+    assert {:error, "Invalid search filter: missing column name"} =
+             prep_state(col_spec, [%{}], [])
+  end
+
+  test "prep/build expr" do
+    # filters = [%{n: "status", x: :is}]
+    filters = [%{n: "status", x: :is, v: ["is"]}]
+    query = %Ecto.Query{}
+    filter_func = fn _ -> {:ok, nil} end
+
+    spec = Validate.spec(status: [type: :atom, list: :in])
+
+    assert {:ok, %Ecto.Query{joins: [], order_bys: [_], wheres: []}} =
+             Filter.enrich_search_query(query, fn _ -> :skip end, spec, filters, [])
+
+    assert {:error, :narf} =
+             Filter.enrich_search_query(query, fn _ -> {:error, :narf} end, spec, filters, [])
+
+    ##########
+    spec = Validate.spec(status: [type: :atom, list: :in, prep: fn _ -> :skip end])
+
+    assert {:ok, %Ecto.Query{}} =
+             Filter.enrich_search_query(query, filter_func, spec, filters, [])
+
+    spec = Validate.spec(status: [type: :atom, list: :in, prep: fn _ -> {:error, "narf"} end])
+    assert {:error, "narf"} = Filter.enrich_search_query(query, filter_func, spec, filters, [])
+  end
+
+  test "prep_state defaults and custom prep", %{start} do
+    valid_prep2 = fn value, %{name} -> {:ok, "#{name}:#{value}"} end
+    valid_prep3 = fn value, %{name}, %{meta} -> {:ok, "#{meta.prefix}:#{name}:#{value}"} end
+
+    spec =
+      [
+        k1: [type: :string, list: :in, order: false],
+        k2: [prep: valid_prep2, order: false],
+        k3: [prep: valid_prep3, order: false],
+        k4: [type: :date, order: :desc]
+      ]
+      |> Validate.spec()
+
+    filter =
+      [
+        [n: "k1", v: []],
+        [n: "k2", v: ["alpha"]],
+        [n: "k3", v: ["beta"]],
+        [n: "k4", v: ["now"]]
+      ]
+      |> Validate.defaults(spec)
+
+    assert {:ok,
+            %Filter.State{
+              order: [{:desc, :k4}],
+              values: %{
+                k1: %{v: [:no_value]},
+                k2: %{v: "k2:alpha"},
+                k3: %{v: "test:k3:beta"},
+                k4: %{v: now}
+              }
+            }} = Filter.Prep.prep_state(spec, filter, [], %{prefix: "test"})
+
+    whence = DateTime.utc_now()
+
+    assert DateTime.compare(now, start) in [:eq, :gt]
+    assert DateTime.compare(now, whence) in [:eq, :lt]
+  end
+
+  test "prep_state atom and integer validation" do
+    spec = [status: [type: :atom], count: [type: :integer]] |> Validate.spec()
+
+    assert {:ok,
+            %Filter.State{
+              values: %{
+                status: %{v: :active},
+                count: %{v: 42}
+              }
+            }} =
+             prep_state(
+               spec,
+               [
+                 %{n: "status", v: ["active"]},
+                 %{n: "count", v: ["42"]}
+               ],
+               []
+             )
+
+    # Random string ensures it isn't an existing atom.
+    bad_atom = "unknown_#{Ecto.UUID.generate()}"
+    bad_err = "Invalid value for status: #{inspect(bad_atom)}"
+
+    assert {:error, ^bad_err} = prep_state(spec, [%{n: "status", v: [bad_atom]}], [])
+
+    assert {:error, "Invalid value for count: (int) \"narf\""} =
+             prep_state(spec, [%{n: "count", v: ["narf"]}], [])
+  end
+
+  test "prep callback returning no_value" do
+    prep = fn _ -> {:ok, :no_value} end
+
+    spec = Validate.spec(scalar: [prep: prep], listed: [list: :in, prep: prep])
+
+    filters = [%{n: "scalar", v: ["anything"]}, %{n: "listed", v: ["anything"]}]
+
+    assert {:ok, %State{values: %{scalar: %{v: [:no_value]}, listed: %{v: [:no_value]}}}} =
+             prep_state(spec, filters, [])
+  end
+
+  test "prep_order uses named join binding" do
+    join_func = fn _, query, state -> {:ok, query, state} end
+
+    spec = %{name: :owner_name, key: :name, join: {:owner, join_func}, order: nil}
+
+    assert {:ok, [owner_name: {:desc, :owner, :name}]} =
+             Order.prep_order(%State{}, %{o: :desc}, spec)
   end
 end

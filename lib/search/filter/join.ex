@@ -1,4 +1,16 @@
 defmodule Rivet.Search.Filter.Join do
+  @moduledoc """
+
+  Prepares and applies joins for search filters.
+
+  Join callbacks receive `(join_key, query, state)` and must return:
+
+    `{:ok, query, state}`
+    `{:error, reason}`
+
+  Callbacks can inspect `state.joined` to avoid duplicate joins.
+
+  """
   alias Rivet.Search.Filter
 
   ##############################################################################
@@ -12,6 +24,8 @@ defmodule Rivet.Search.Filter.Join do
     do: {:ok, Map.put(joins, name, join)}
 
   ##############################################################################
+  @spec add_joins(Ecto.Query.t(), Filter.State.t() | nil) ::
+          {:ok, Ecto.Query.t()} | {:error, term()}
   def add_joins(%Ecto.Query{} = query, %Filter.State{joins} = state) when map_size(joins) > 0 do
     joined = join_keys(query)
     add_joins_(query, %{state | joined}, Map.to_list(joins))
@@ -20,13 +34,12 @@ defmodule Rivet.Search.Filter.Join do
   def add_joins(%Ecto.Query{} = query, _), do: {:ok, query}
 
   #### inner
-  @true_value []
   defp add_joins_(query, state, [{filter_key, join} | rest]) do
     # the case just assures external functions are shaped right
     case join.(filter_key, query, state) do
-      {:ok, %Ecto.Query{} = query, state} ->
+      {:ok, %Ecto.Query{} = query, %Filter.State{} = state} ->
         # merge both whatever is in the query plus the filter key
-        joined = Map.put(state.joined, filter_key, @true_value) |> Map.merge(join_keys(query))
+        joined = Map.put(state.joined, filter_key, :joined) |> Map.merge(join_keys(query))
 
         add_joins_(query, %{state | joined}, rest)
 
@@ -34,11 +47,15 @@ defmodule Rivet.Search.Filter.Join do
         pass
 
       _other ->
-        {:error, "external join function returned invalid shape for #{filter_key}"}
+        {:error, "External join function returned invalid shape for #{filter_key}"}
     end
   end
 
   defp add_joins_(query, _state, []), do: {:ok, query}
 
-  defp join_keys(query), do: Map.new(query.joins, fn %{as: key} -> {key, @true_value} end)
+  defp join_keys(query) do
+    query.joins
+    |> Enum.reject(&is_nil(&1.as))
+    |> Map.new(fn %{as: key} -> {key, :joined} end)
+  end
 end

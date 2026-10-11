@@ -1,9 +1,24 @@
 defmodule Rivet.Search.Filter.Prep do
+  @moduledoc """
+
+  Prepares search filters into a normalized `%Filter.State{}`.
+
+  User-supplied filters override defaults by column name. Values are validated
+  and converted according to their column specs.
+
+  Missing values normalize to `[:no_value]` unless transformed by custom
+  prep function in the spec. A custom prep function can return `:skip` to
+  exclude an individual filter entirely.
+
+  """
+
   import Transmogrify.As
   alias Rivet.Search.Filter
   import Rivet.Guards
 
   ####################
+
+  @spec prep_state(map(), [map()], [map()], map()) :: {:ok, Filter.State.t()} | {:error, term()}
   def prep_state(specs, cols, default_filter, meta \\ %{})
 
   def prep_state(specs, [], default_filter, meta),
@@ -27,15 +42,27 @@ defmodule Rivet.Search.Filter.Prep do
   ####################
   defp prep_state_reducer(state, [%{n: name} = fltr | rest]) do
     with {:ok, spec} <- get_filter_spec(name, state.specs),
-         {:ok, fltr} <- init_filter(fltr),
-         {:ok, state, fltr} <- validate_type(state, spec, fltr),
-         {:ok, order} <- Filter.Order.prep_order(state, fltr, spec),
-         {:ok, joins} <- Filter.Join.prep_join(state.joins, spec),
-         do: prep_state_reducer(%{state | order, joins}, rest)
+         {:ok, fltr} <- init_filter(fltr, spec) do
+      case validate_type(state, spec, fltr) do
+        :skip ->
+          prep_state_reducer(state, rest)
+
+        {:ok, state, fltr} ->
+          with {:ok, order} <- Filter.Order.prep_order(state, fltr, spec),
+               {:ok, joins} <- Filter.Join.prep_join(state.joins, spec),
+               do: prep_state_reducer(%{state | order, joins}, rest)
+
+        {:error, _} = error ->
+          error
+      end
+    end
   end
 
   defp prep_state_reducer(state, []),
     do: {:ok, %{state | order: Keyword.values(state.order) |> Enum.reverse()}}
+
+  defp prep_state_reducer(_, [_ | _]),
+    do: {:error, "Invalid search filter: missing column name"}
 
   ####################
   defp badcol(name), do: {:error, "Invalid column '#{name}' — not in spec"}
@@ -67,17 +94,39 @@ defmodule Rivet.Search.Filter.Prep do
     end
   end
 
-  ####################
-  @default_filter %{v: nil, x: :is, o: :a}
-  defp init_filter(f), do: Map.merge(@default_filter, f) |> init_value()
+  ##############################################################################
+  @default_filter %{v: nil, x: :is, o: nil}
+  defp init_filter(f, spec) do
+    f = Map.merge(@default_filter, f)
+    with {:ok, o} <- resolve_order(f.o, spec[:order]), do: init_value(%{f | o})
+  end
 
-  defp init_value(%{v: [""]} = f), do: {:ok, %{f | v: :no_value}}
-  defp init_value(%{v: []} = f), do: {:ok, %{f | v: :no_value}}
-  defp init_value(%{v: v} = f) when is_list(v), do: {:ok, f}
+  ###############
   defp init_value(%{v: nil} = f), do: {:ok, %{f | v: :no_value}}
 
-  defp init_value(%{v: v}),
-    do: {:error, "Invalid search filter param value (not a list?) #{inspect(v)}"}
+  defp init_value(%{v} = f) when is_list(v) do
+    if Enum.all?(v, &is_binary/1) do
+      case Enum.reject(v, &(String.trim(&1) == "")) do
+        [] -> {:ok, %{f | v: :no_value}}
+        v -> {:ok, %{f | v}}
+      end
+    else
+      bad_value_error(v)
+    end
+  end
+
+  defp init_value(%{v}), do: bad_value_error(v)
+
+  ###############
+  defp bad_value_error(v), do: {:error, "Invalid search filter value: #{inspect(v)}"}
+
+  ##############################################################################
+  # no given order, take spec :desc setting
+  def resolve_order(nil, d) when d in [:asc, :desc], do: {:ok, d}
+  def resolve_order(nil, _), do: {:ok, :asc}
+  def resolve_order(:a, _), do: {:ok, :asc}
+  def resolve_order(:d, _), do: {:ok, :desc}
+  def resolve_order(x, _), do: {:error, "Invalid filter order: #{inspect(x)}"}
 
   ##############################################################################
   defp validate_type(state, %{order: :only}, f), do: {:ok, state, f}
@@ -100,7 +149,17 @@ defmodule Rivet.Search.Filter.Prep do
          do: {:ok, [v | out]}
   end
 
-  defp validate_type_reducer([], %{list: :in}, out, _), do: {:ok, out}
+  defp validate_type_reducer([], %{name, list: :in}, out, _) do
+    # make sure our helper didn't give us bad data. It can return data parsed
+    # so things NOT binary, and that's fine. Just don't mix in :no_value too
+    cond do
+      out == [:no_value] -> {:ok, out}
+      :no_value in out -> {:error, "Invalid values for filter column '#{name}'"}
+      true -> {:ok, Enum.reverse(out)}
+    end
+  end
+
+  defp validate_type_reducer([], _, [:no_value], _), do: {:ok, [:no_value]}
   defp validate_type_reducer([], _, [out], _), do: {:ok, out}
 
   defp validate_type_reducer(_, s, _, _),
@@ -121,8 +180,15 @@ defmodule Rivet.Search.Filter.Prep do
 
   defp validate_type_value(:no_value, _, _), do: {:ok, :no_value}
 
-  defp validate_type_value(value, %{type: :glob}, _),
-    do: {:ok, "%#{String.trim(value)}%"}
+  defp validate_type_value(value, %{type: :glob}, _) do
+    value =
+      String.trim(value)
+      |> String.replace("\\", "\\\\")
+      |> String.replace("%", "\\%")
+      |> String.replace("_", "\\_")
+
+    {:ok, "%#{value}%"}
+  end
 
   defp validate_type_value(value, %{type: :atom, name: key}, _) do
     with :error <- as_existing_atom(value),
@@ -160,17 +226,5 @@ defmodule Rivet.Search.Filter.Prep do
   defp validate_type_value(_value, badspec, _) do
     # this is a literal code problem and shouldn't happen in general use
     {:error, "Bad item spec? (#{inspect(badspec)})"}
-  end
-
-  ##############################################################################
-  def prep_enum_any(:no_value, _, _), do: {:ok, :any}
-  def prep_enum_any("any", _, _), do: {:ok, :any}
-  def prep_enum_any(a, b, c), do: prep_enum(a, b, c)
-  def prep_enum_mine("mine", _, _), do: {:ok, :mine}
-  def prep_enum_mine(a, b, c), do: prep_enum(a, b, c)
-
-  def prep_enum(value, _spec, enum) do
-    with :error <- enum.cast(value),
-         do: {:error, "Invalid #{Rivet.Utils.Module.mod_basename(enum)}: '#{value}'"}
   end
 end
