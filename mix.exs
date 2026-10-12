@@ -33,8 +33,8 @@ defmodule Rivet.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      env: [rivet: [app: :rivet] ++ rivet_env(Mix.env())],
-      mod: {Rivet.Application, []}
+      env: [rivet: [app: :rivet] ++ rivet_env(Mix.env())]
+      # mod: {Rivet.Application, []}
     ]
   end
 
@@ -95,7 +95,14 @@ defmodule Rivet.MixProject do
   defp docs() do
     [
       main: "Rivet",
-      extras: ["lib/search/README.md"]
+      groups_for_modules: [
+        Ecto: ~r/^Rivet\.Ecto(\.|$)/,
+        Migration: ~r/^Rivet\.Migration(\.|$)/,
+        Loader: ~r/^Rivet\.Loader(\.|$)/,
+        Search: ~r/^Rivet\.Search(\.|$)/,
+        GraphQL: ~r/^Rivet\.Graphql(\.|$)/,
+        Guards: ~r/^Rivet\.Guards(\.|$)/
+      ]
     ]
   end
 end

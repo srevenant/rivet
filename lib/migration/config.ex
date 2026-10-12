@@ -1,4 +1,4 @@
-defmodule Rivet.Config do
+defmodule Rivet.Migration.Config do
   import Transmogrify
   require Logger
   use Rivet

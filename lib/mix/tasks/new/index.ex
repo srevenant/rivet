@@ -78,7 +78,7 @@ defmodule Mix.Tasks.Rivet.New do
     Application.ensure_loaded(app)
     rivetcfg = Application.get_env(app, :rivet, [])
 
-    Keyword.merge(Keyword.get(optcfg, :info), opts) |> Rivet.Config.build(rivetcfg)
+    Keyword.merge(Keyword.get(optcfg, :info), opts) |> Rivet.Migration.Config.build(rivetcfg)
   end
 
   #
@@ -86,7 +86,7 @@ defmodule Mix.Tasks.Rivet.New do
   #   case parse_options(args, opts) do
   #     {opts, args, []} ->
   #       Keyword.merge(Keyword.get(opts, :info), opts)
-  #       |> Rivet.Config.build(Mix.Project.config())
+  #       |> Rivet.Migration.Config.build(Mix.Project.config())
   #       |> new(args)
   #
   #     {_, _, _errs} ->

@@ -5,7 +5,7 @@ defmodule Rivet.Migration.Manage do
   import Transmogrify.As
   import Transmogrify
   use Rivet
-  import Rivet.Config, only: [valid_file: 3, valid_dir: 3]
+  import Rivet.Migration.Config, only: [valid_file: 3, valid_dir: 3]
 
   @stepping 10
   @minimum 100

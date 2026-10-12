@@ -21,7 +21,7 @@ defmodule Rivet.Migration.Load do
 
   def config_build(opts, app) do
     Application.ensure_loaded(app)
-    Rivet.Config.build(opts, Application.get_env(app, :rivet, []))
+    Rivet.Migration.Config.build(opts, Application.get_env(app, :rivet, []))
   end
 
   @doc """
@@ -46,7 +46,7 @@ defmodule Rivet.Migration.Load do
 
   ##############################################################################
   defp load_migrations_from_config(%{optsd: %{mig_dir}} = rivet_config) do
-    with {:ok, mig_file} <- Rivet.Config.valid_file([mig_dir, @migrations_file], "migrations"),
+    with {:ok, mig_file} <- Rivet.Migration.Config.valid_file([mig_dir, @migrations_file], "migrations"),
          {:ok, mig_data} <- load_data_file(mig_file),
          do: load_project_migrations(@initial_state, mig_data, rivet_config)
   end
@@ -63,7 +63,7 @@ defmodule Rivet.Migration.Load do
 
   ##############################################################################
   def prepare_model_config(%{include: mod} = mig, mig_dir) do
-    with {:ok, path} <- Rivet.Config.valid_dir([mig_dir, mod], "model migration path"),
+    with {:ok, path} <- Rivet.Migration.Config.valid_dir([mig_dir, mod], "model migration path"),
          do: {:ok, %{struct(Rivet.Migration, mig) | path}}
   end
 
@@ -76,7 +76,7 @@ defmodule Rivet.Migration.Load do
   end
 
   defp load_project_migration(%{external: extapp} = model_migration, state, cfg) do
-    appdir = Rivet.Config.get_app_dir(cfg.optsd, extapp)
+    appdir = Rivet.Migration.Config.get_app_dir(cfg.optsd, extapp)
 
     with {:ok, config} <- config_build(cfg.fwd_opts ++ [base_dir: appdir], extapp),
          do: load_project_migrations(state, model_migration.migrations, config)
@@ -89,7 +89,7 @@ defmodule Rivet.Migration.Load do
   def merge_model_migrations({:ok, _} = pass, _, _, false), do: pass
 
   def merge_model_migrations({:ok, state}, mig, file, _) do
-    with {:ok, includes} <- load_data_file(Rivet.Config.clean_path([mig.path, file])),
+    with {:ok, includes} <- load_data_file(Rivet.Migration.Config.clean_path([mig.path, file])),
          do: flatten_include(state, includes, mig)
   end
 

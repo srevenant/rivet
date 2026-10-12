@@ -8,7 +8,7 @@ defmodule Rivet.Test.Migration.IncludeTest do
     ]
 
     cfg = [app: :app1]
-    assert {:ok, rivet_cfg} = Rivet.Config.build(opts, cfg)
+    assert {:ok, rivet_cfg} = Rivet.Migration.Config.build(opts, cfg)
 
     assert {:ok, model_cfg} =
              Rivet.Migration.Load.prepare_model_config(

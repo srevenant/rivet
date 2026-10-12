@@ -188,7 +188,7 @@ defmodule Rivet.Search.MixedAuth do
   @spec mixed_auth_search(
           user_args(),
           runtime_opts(),
-          auth_type()
+          auth_type(),
           auth_value(),
           authed_action :: mixed_auth_action(),
           unauthed_action :: mixed_auth_action()
@@ -218,15 +218,15 @@ defmodule Rivet.Search.MixedAuth do
   ##############################################################################
   # continue callback
   defp run_auth_action({searcher, func}, args, opts, type)
-      when is_atom(searcher) and is_function(func),
-      do: run_auth_continue_args(args, opts, searcher, func, type)
+       when is_atom(searcher) and is_function(func),
+       do: run_auth_continue_args(args, opts, searcher, func, type)
 
   # arg adjustment then continue callback
   defp run_auth_action({searcher, func, auth_opts}, args, opts, type)
-      when is_atom(searcher) and is_function(func) and is_list(auth_opts),
-      do:
-        adjust_auth_args(args, auth_opts, opts, type)
-        |> run_auth_continue_args(opts, searcher, func, type)
+       when is_atom(searcher) and is_function(func) and is_list(auth_opts),
+       do:
+         adjust_auth_args(args, auth_opts, opts, type)
+         |> run_auth_continue_args(opts, searcher, func, type)
 
   # final callback
   defp run_auth_action(func, args, opts, type) when is_function(func) do
@@ -236,13 +236,13 @@ defmodule Rivet.Search.MixedAuth do
 
   # arg adjustment then search
   defp run_auth_action({searcher, auth_opts}, args, opts, type)
-      when is_atom(searcher) and is_list(auth_opts),
-      do: adjust_auth_args(args, auth_opts, opts, type) |> searcher.search(opts)
+       when is_atom(searcher) and is_list(auth_opts),
+       do: adjust_auth_args(args, auth_opts, opts, type) |> searcher.search(opts)
 
   # arg adjustment then search
   defp run_auth_action(searcher, args, opts, _)
-      when is_atom(searcher),
-      do: searcher.search(args, opts)
+       when is_atom(searcher),
+       do: searcher.search(args, opts)
 
   defp run_auth_action(_, _, _, type),
     do: raise(ArgumentError, "Invalid auth run spec for #{type}")
