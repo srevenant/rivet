@@ -29,15 +29,6 @@ defmodule Rivet.Search.Tools.MixedAuth do
 
   On the unauthorized path, `:none` is then set as the authorization value.
 
-
-
-  The caller supplies an authentication or authorization value. A nil value
-  indicates that the required auth was not established and selects the unauthed
-  path. Any non-nil value is assumed to have already satisfied the required
-  authorization level.
-
-  The unauthorized path then recieves :none as its auth value in user_data.
-
   """
   alias Rivet.Search.Result
 

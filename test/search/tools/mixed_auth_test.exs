@@ -88,7 +88,8 @@ defmodule Rivet.Test.Search.Tools.MixedAuthTest do
       {:ok, %{status: %{success: true}, result: :stopped}}
     end
 
-    assert {:ok, %{result: :stopped}} = MixedAuth.mixed_auth_search(args, opts, :authz, auth, {Searcher, stop})
+    assert {:ok, %{result: :stopped}} =
+             MixedAuth.mixed_auth_search(args, opts, :authz, auth, {Searcher, stop})
   end
 
   test "mixed_auth_search error handling" do
@@ -114,7 +115,9 @@ defmodule Rivet.Test.Search.Tools.MixedAuthTest do
     fail = fn _, _, _ -> {:error, :blocked} end
 
     assert {:error, :blocked} = MixedAuth.mixed_auth_search(args, opts, :authz, auth, fail)
-    assert {:error, :blocked} = MixedAuth.mixed_auth_search(args, opts, :authz, auth, {Searcher, fail})
+
+    assert {:error, :blocked} =
+             MixedAuth.mixed_auth_search(args, opts, :authz, auth, {Searcher, fail})
 
     # Invalid callback return.
     assert_raise ArgumentError, ~r/Invalid result from auth callback/, fn ->
