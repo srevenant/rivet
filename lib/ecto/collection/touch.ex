@@ -1,4 +1,6 @@
 defmodule Rivet.Ecto.Collection.Touch do
+  @moduledoc false
+
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       @doc """

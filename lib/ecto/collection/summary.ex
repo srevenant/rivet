@@ -1,4 +1,6 @@
 defmodule Rivet.Ecto.Collection.Summary do
+  @moduledoc false
+
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       def latest!(claims \\ [], x \\ 1) do

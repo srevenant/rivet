@@ -1,4 +1,6 @@
 defmodule Rivet.Ecto.Collection.Update do
+  @moduledoc false
+
   import Transmogrify
 
   defmacro __using__(opts) do

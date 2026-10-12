@@ -4,7 +4,7 @@ defmodule Rivet.MixProject do
   def project do
     [
       app: :rivet,
-      version: "3.0.0",
+      version: "3.0.0-rc.1",
       elixir: "~> 1.18",
       description: "Elixir data model framework library",
       source_url: "https://github.com/srevenant/rivet",
@@ -96,13 +96,13 @@ defmodule Rivet.MixProject do
     [
       main: "Rivet",
       groups_for_modules: [
-        Ecto: ~r/^Rivet\.Ecto(\.|$)/,
-        Migration: ~r/^Rivet\.Migration(\.|$)/,
+        "Rivet Ecto": ~r/^Rivet\.Ecto/,
+        Migration: ~r/^Rivet\.Migration/,
         Loader: ~r/^Rivet\.Loader(\.|$)/,
         Search: ~r/^Rivet\.Search(\.|$)/,
         GraphQL: ~r/^Rivet\.Graphql(\.|$)/,
         Guards: ~r/^Rivet\.Guards(\.|$)/
-      ]
+      ],
     ]
   end
 end

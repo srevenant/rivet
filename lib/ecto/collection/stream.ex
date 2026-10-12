@@ -1,4 +1,6 @@
 defmodule Rivet.Ecto.Collection.Stream do
+  @moduledoc false
+
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       def stream_all!(args, func) do
