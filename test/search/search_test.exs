@@ -62,7 +62,7 @@ defmodule Rivet.Test.Search.SearchTest do
   test "search execution and callback handling" do
     # Runtime soft limit and offset, without count queries.
     assert {:ok, %{success: true, results: [_]}} =
-             TestSearch.search(%{filter: [], offset: 10}, matching: false, soft_limit: 2)
+             TestSearch.search(%{filter: [], offset: 10}, %{matching: false, soft_limit: 2})
 
     assert_received {:query_all, %Ecto.Query{} = query}
     assert %Ecto.Query{limit: %{params: [{2, _}]}} = query

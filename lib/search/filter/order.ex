@@ -12,9 +12,8 @@ defmodule Rivet.Search.Filter.Order do
   by the time this runs.
 
   """
-  alias Rivet.Search.Filter
   import Ecto.Query
-  @spec column_order(Ecto.Query.t(), Filter.t()) :: {:ok, Ecto.Query.t()} | {:error, term()}
+  @spec column_order(Ecto.Query.t(), Rivet.Search.t()) :: {:ok, Ecto.Query.t()} | {:error, term()}
 
   def column_order(%Ecto.Query{} = query, %Rivet.Search{order: []}), do: {:ok, query}
 
@@ -36,7 +35,7 @@ defmodule Rivet.Search.Filter.Order do
 
   ##############################################################################
 
-  @spec prep_order(Filter.t(), map(), map()) :: {:ok, keyword()} | {:error, term()}
+  @spec prep_order(Rivet.Search.t(), map(), map()) :: {:ok, keyword()} | {:error, term()}
   # no order
   def prep_order(%Rivet.Search{order}, _, %{order: false}), do: {:ok, order}
 

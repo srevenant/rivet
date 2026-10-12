@@ -17,6 +17,7 @@ defmodule Rivet.Search do
           required(:v) => term()
         }
   @type search_filters :: list(search_filter())
+  @type search_module :: module()
 
   @type user_args :: map()
   @type runtime_opts :: map()
@@ -39,9 +40,11 @@ defmodule Rivet.Search do
           optional(atom()) => term()
         }
 
-  @type search_result :: {:ok, status_result()} | {:error, atom() | String.t()}
+  @type search_error :: {:error, atom() | String.t()}
+  @type search_result :: {:ok, status_result()} | search_error()
+  @type search_opts :: keyword() | map()
 
-  @callback search(user_args(), keyword()) :: search_result()
+  @callback search(user_args(), search_opts()) :: search_result()
 
   @doc """
 
@@ -113,8 +116,7 @@ defmodule Rivet.Search do
       @doc """
       See search/README.md
       """
-      def search(filters, opts \\ [matching: true]),
-        do: Rivet.Search.search_(__MODULE__, filters, Map.new(opts))
+      def search(filters, opts \\ nil), do: Rivet.Search.search(__MODULE__, filters, opts)
 
       defoverridable search: 2
 
@@ -143,7 +145,7 @@ defmodule Rivet.Search do
           joins: map(),
           joined: map(),
           schema: map(),
-          searcher: atom(),
+          searcher: search_module(),
           opts: map()
         }
 
@@ -172,7 +174,18 @@ defmodule Rivet.Search do
     * `:soft_limit` - runtime override of compile-time soft_limit
 
   """
-  def search_(searcher, %{filter} = user_args, opts) when is_list(filter) do
+  @default_opts %{matching: true}
+  def search(searcher, user_args, nil),
+    do: search_(searcher, user_args, @default_opts)
+
+  def search(searcher, user_args, opts) when is_list(opts),
+    do: search_(searcher, user_args, Map.new(opts))
+
+  def search(searcher, user_args, opts) when is_map(opts),
+    do: search_(searcher, user_args, opts)
+
+  ############
+  defp search_(searcher, %{filter} = user_args, opts) when is_list(filter) do
     case searcher.build_filter_query(filter, opts) do
       {:ok, %Ecto.Query{} = query} ->
         model = searcher.get_model()
@@ -194,10 +207,10 @@ defmodule Rivet.Search do
     end
   end
 
-  def search_(searcher, %{id}, _opts) when is_uuid(id),
+  defp search_(searcher, %{id}, _opts) when is_uuid(id),
     do: searcher.get_model().one(id: id) |> Rivet.Search.Result.status_results()
 
-  def search_(_, _, _), do: {:error, :args}
+  defp search_(_, _, _), do: {:error, :args}
 
   ##############################################################################
   defp get_limit(searcher, limit, opts) when is_integer(limit) do

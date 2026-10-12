@@ -79,21 +79,4 @@ defmodule Rivet.Search.Tools do
       {:error, "Invalid #{mod}: '#{value}'"}
     end
   end
-
-  # ##############################################################################
-  # @public """
-  #
-  # authz: %struct{} - commonly %User{}
-  #
-  # """
-  # def no_authz_limits(user_args, opts) do
-  #
-  # user_args =
-  #   case Keyword.get(opts, :user, nil) do
-  #     # user is nil if nobody is signed in; force defaults
-  #     nil -> Map.merge(user_args, %{filter: @default, limit: @public_limit, user: :public})
-  #     _ -> user_args
-  #   end
-  #
-  # Rivet.Search.search_(__MODULE__, user_args, opts)
 end

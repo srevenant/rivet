@@ -11,7 +11,6 @@ defmodule Rivet.Search.Filter.Join do
   Callbacks can inspect `state.joined` to avoid duplicate joins.
 
   """
-  alias Rivet.Search.Filter
 
   ##############################################################################
   # compile-time validation assures it will be only one of these three shapes
@@ -24,7 +23,7 @@ defmodule Rivet.Search.Filter.Join do
     do: {:ok, Map.put(joins, name, join)}
 
   ##############################################################################
-  @spec add_joins(Ecto.Query.t(), Filter.t() | nil) ::
+  @spec add_joins(Ecto.Query.t(), Rivet.Search.t() | nil) ::
           {:ok, Ecto.Query.t()} | {:error, term()}
   def add_joins(%Ecto.Query{} = query, %Rivet.Search{joins} = state) when map_size(joins) > 0 do
     joined = join_keys(query)

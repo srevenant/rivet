@@ -16,7 +16,7 @@ defmodule Rivet.Search.Filter.Prep do
   alias Rivet.Search.Filter
   import Rivet.Guards
 
-  @spec prep_state(atom(), [map()], map()) :: {:ok, Filter.t()} | {:error, term()}
+  @spec prep_state(atom(), [map()], map()) :: {:ok, Rivet.Search.t()} | {:error, term()}
   def prep_state(searcher, cols, opts) do
     prep_state_reducer(
       %Rivet.Search{opts, searcher, schema: searcher.get_schema()},

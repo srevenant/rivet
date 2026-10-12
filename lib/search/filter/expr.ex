@@ -1,5 +1,4 @@
 defmodule Rivet.Search.Filter.Expr do
-  alias Rivet.Search.Filter
   import Ecto.Query
 
   @doc """
@@ -8,7 +7,7 @@ defmodule Rivet.Search.Filter.Expr do
   Filters with `[:no_value]` are skipped.
 
   """
-  @spec build_expr(Ecto.Query.t(), Filter.t()) :: {:ok, Ecto.Query.t()} | {:error, term()}
+  @spec build_expr(Ecto.Query.t(), Rivet.Search.t()) :: {:ok, Ecto.Query.t()} | {:error, term()}
   def build_expr(query, %Rivet.Search{values} = f) do
     reduce_filter_expr(&and_expr/2, f, values)
     |> finish_filter_expr(query, fn q, e -> where(q, [], ^e) end)

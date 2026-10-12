@@ -31,8 +31,9 @@ defmodule Rivet.Search.Result do
   {:ok, %{status: %{success: true}, result: "narf", success: true}}
   ```
   """
-  @spec status_result({:ok, term()} | {:error, term()}) ::
-          {:ok, map()} | {:error, term()}
+  @type status_result :: {:ok, map()} | {:error, term()}
+
+  @spec status_result({:ok, term()} | {:error, term()}) :: status_result()
 
   def status_result({:ok, result} = pass) when has_status?(result), do: pass
   def status_result({:ok, result}), do: build_success(%{result})
