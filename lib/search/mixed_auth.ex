@@ -96,41 +96,41 @@ defmodule Rivet.Search.MixedAuth do
   # errors first to avoid catching on later patterns
 
   # hard error
-  def run_auth_action(:error, _, _, type), do: {:error, type}
+  defp run_auth_action(:error, _, _, type), do: {:error, type}
 
   # soft error
-  def run_auth_action({:error, e}, _, _, _), do: Result.build_error(e)
+  defp run_auth_action({:error, e}, _, _, _), do: Result.build_error(e)
 
   ##############################################################################
   # continue callback
-  def run_auth_action({searcher, func}, args, opts, type)
+  defp run_auth_action({searcher, func}, args, opts, type)
       when is_atom(searcher) and is_function(func),
       do: run_auth_continue_args(args, opts, searcher, func, type)
 
   # arg adjustment then continue callback
-  def run_auth_action({searcher, func, auth_opts}, args, opts, type)
+  defp run_auth_action({searcher, func, auth_opts}, args, opts, type)
       when is_atom(searcher) and is_function(func) and is_list(auth_opts),
       do:
         adjust_auth_args(args, auth_opts, opts, type)
         |> run_auth_continue_args(opts, searcher, func, type)
 
   # final callback
-  def run_auth_action(func, args, opts, type) when is_function(func) do
+  defp run_auth_action(func, args, opts, type) when is_function(func) do
     raise_if_not_arity(func, 3, "auth final action #{type}")
     func.(args, opts, type) |> valid_final_auth_result()
   end
 
   # arg adjustment then search
-  def run_auth_action({searcher, auth_opts}, args, opts, type)
+  defp run_auth_action({searcher, auth_opts}, args, opts, type)
       when is_atom(searcher) and is_list(auth_opts),
       do: adjust_auth_args(args, auth_opts, opts, type) |> searcher.search(opts)
 
   # arg adjustment then search
-  def run_auth_action(searcher, args, opts, _)
+  defp run_auth_action(searcher, args, opts, _)
       when is_atom(searcher),
       do: searcher.search(args, opts)
 
-  def run_auth_action(_, _, _, type),
+  defp run_auth_action(_, _, _, type),
     do: raise(ArgumentError, "Invalid auth run spec for #{type}")
 
   ##############################################################################
