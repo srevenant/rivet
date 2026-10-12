@@ -72,8 +72,7 @@ defmodule Rivet.MixProject do
       {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
       {:mix_test_watch, "~> 1.4", only: [:dev, :test], runtime: false},
       {:postgrex, "~> 0.22.4"},
-      # {:rivet_utils, "~> 2.0"},
-      {:rivet_utils, git: "https://github.com/srevenant/rivet-utils/", branch: "v3"},
+      {:rivet_utils, "~> 3.0.0-rc.1"},
       # not used but this hels things test properly
       {:app1, path: "test/fixtures/app1", only: :test, runtime: false},
       {:app2, path: "test/fixtures/app2", only: :test, runtime: false},
