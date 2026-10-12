@@ -1,4 +1,4 @@
-defmodule Rivet.Search.Tools.MixedAuth do
+defmodule Rivet.Search.MixedAuth do
   @moduledoc """
 
   MixedAuth provides a way to select different search execution paths based on

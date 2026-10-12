@@ -1,4 +1,4 @@
-defmodule Rivet.Test.Search.Tools.IndexTest do
+defmodule Rivet.Test.Search.ToolsTest do
   use Rivet.Test.Case, async: true
   import Ecto.Query
   alias Rivet.Search.Tools

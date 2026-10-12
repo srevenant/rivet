@@ -103,6 +103,7 @@ defmodule Rivet.Search do
 
       import Ecto.Query
       alias Rivet.Search.{Tools, Filter, Result}
+      alias Rivet.Search.Tools.MixedAuth
 
       @doc """
       Search module configuration values
