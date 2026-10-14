@@ -93,30 +93,22 @@ defmodule Rivet.Migration.Manage do
 
   ##############################################################################
   @doc """
-  # ...>   lib_dir: "test/fixtures/rivet/lib",
-  # ...>   priv_dir: "test/fixtures/rivet/priv"
-
   iex> {:ok, cfg} = Rivet.Migration.Load.config_build([
   ...>   app1_override: "test/fixtures/app1",
-  ...>   app2_override: "test/fixtures/app2",
-  ...> ], :rivet)
-  iex> ver = 2000
-  iex> module_parts("Brain", "doctest", ver, cfg)
-  {:ok,
-    %{
-      base: "Doctest",
-      name: %{
-        migration: Rivet.Brain.Migrations.Doctest,
-        model: "Rivet.Brain"
-      },
-      path: %{
-        migration: "test/fixtures/rivet/priv/rivet/migrations/brain/doctest.exs",
-        migrations: "test/fixtures/rivet/priv/rivet/migrations/brain",
-        model: "test/fixtures/rivet/lib/rivet/brain"
-      },
-      ver: 2000
-    }
-  }
+  ...> ], :app1)
+  iex> assert {:ok,
+  ...>   %{
+  ...>     base: "Base",
+  ...>     ver: 2000,
+  ...>     name: %{
+  ...>       migration: App1.Pinky.Migrations.Base,
+  ...>       model: "App1.Pinky"
+  ...>     },
+  ...>     path: %{
+  ...>       migration: "test/fixtures/app1/priv/rivet/migrations/pinky/base.exs",
+  ...>       migrations: "test/fixtures/app1/priv/rivet/migrations/pinky",
+  ...>       model: "lib/app1/pinky"
+  ...>     }}} = module_parts("Pinky", "base", 2000, cfg)
   """
   def module_parts(model, label, ver, cfg) do
     model_parts =

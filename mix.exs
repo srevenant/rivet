@@ -33,20 +33,9 @@ defmodule Rivet.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      env: [rivet: [app: :rivet] ++ rivet_env(Mix.env())]
-      # mod: {Rivet.Application, []}
+      env: [rivet: [app: :rivet]]
     ]
   end
-
-  defp rivet_env(:test),
-    do: [
-      lib_dir: "test/fixtures/rivet/lib",
-      priv_dir: "test/fixtures/rivet/priv",
-      app1_override: "test/fixtures/app1",
-      app2_override: "test/fixtures/app2"
-    ]
-
-  defp rivet_env(_), do: []
 
   defp elixirc_paths(:test), do: ["lib", "test/support", "test/fixtures/rivet"]
   defp elixirc_paths(_), do: ["lib"]
