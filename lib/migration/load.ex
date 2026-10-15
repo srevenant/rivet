@@ -46,7 +46,8 @@ defmodule Rivet.Migration.Load do
 
   ##############################################################################
   defp load_migrations_from_config(%{optsd: %{mig_dir}} = rivet_config) do
-    with {:ok, mig_file} <- Rivet.Migration.Config.valid_file([mig_dir, @migrations_file], "migrations"),
+    with {:ok, mig_file} <-
+           Rivet.Migration.Config.valid_file([mig_dir, @migrations_file], "migrations"),
          {:ok, mig_data} <- load_data_file(mig_file),
          do: load_project_migrations(@initial_state, mig_data, rivet_config)
   end

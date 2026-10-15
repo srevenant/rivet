@@ -337,7 +337,7 @@ def base_paths() -> str:
     return (root, None)
 
 def find_root() -> Path:
-    root = Path(sys.argv[0]).resolve().parent.parent
+    root = Path(sys.argv[0]).parent.parent
 
     mix = root / "mix.exs"
     if mix.exists():

@@ -1,13 +1,14 @@
 defmodule Rivet.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/srevenant/rivet"
   def project do
     [
       app: :rivet,
-      version: "3.0.0-rc.1",
+      version: "3.0.0-rc.2",
       elixir: "~> 1.18",
       description: "Elixir data model framework library",
-      source_url: "https://github.com/srevenant/rivet",
+      source_url: @source_url,
       docs: docs(),
       package: package(),
       deps: deps(),
@@ -16,11 +17,12 @@ defmodule Rivet.MixProject do
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
-        "coveralls.html": :test
+        "coveralls.html": :test,
+        dialyzer: :test
       ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
-        plt_add_apps: [:mix],
+        # plt_add_apps: [:mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ],
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -32,8 +34,8 @@ defmodule Rivet.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
-      env: [rivet: [app: :rivet]]
+      env: [rivet: [app: :rivet]],
+      extra_applications: [:logger]
     ]
   end
 
@@ -75,22 +77,21 @@ defmodule Rivet.MixProject do
     [
       files: ~w(lib .formatter.exs mix.exs README* LICENSE*),
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/srevenant/rivet"},
-      source_url: "https://github.com/srevenant/rivet"
+      links: %{"GitHub" => @source_url}
     ]
   end
 
   defp docs() do
     [
       main: "Rivet",
+      extras: ["README.md"],
       groups_for_modules: [
         "Rivet Ecto": ~r/^Rivet\.Ecto/,
         Migration: ~r/^Rivet\.Migration/,
         Loader: ~r/^Rivet\.Loader(\.|$)/,
-        Search: ~r/^Rivet\.Search(\.|$)/,
         GraphQL: ~r/^Rivet\.Graphql(\.|$)/,
         Guards: ~r/^Rivet\.Guards(\.|$)/
-      ],
+      ]
     ]
   end
 end
