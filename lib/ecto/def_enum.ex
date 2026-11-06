@@ -75,13 +75,6 @@ defmodule Rivet.Ecto.DefEnum do
     :ok
   end
 
-  # def typespec_ast(keys) do
-  #   case keys do
-  #     [] -> quote(do: none())
-  #     [k] -> k
-  #     [k | rest] -> Enum.reduce(rest, k, fn key, acc -> {:|, [], [acc, key]} end)
-  #   end
-  # end
   def typespec_ast(keys) do
     quoted_keys =
       Enum.map(keys, fn key ->

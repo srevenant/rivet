@@ -1,0 +1,52 @@
+defmodule Rivet.Ecto.DefAppEnum do
+  defmacro __using__(opts) do
+    app = Keyword.fetch!(opts, :app)
+    key = Keyword.fetch!(opts, :key)
+
+    quote bind_quoted: [app: app, key: key] do
+      @behaviour Ecto.Type
+
+      @config_app app
+      @config_key key
+      @params_key __MODULE__
+
+      def init do
+        values = Application.fetch_env!(@config_app, @config_key) |> Enum.to_list()
+        Rivet.Ecto.DefEnum.validate_enum!(values)
+
+        params = Ecto.Enum.init(values: values)
+        Application.put_env(@config_app, @params_key, params)
+        :ok
+      end
+
+      defp params, do: Application.fetch_env!(@config_app, @params_key)
+
+      @impl true
+      def type, do: :integer
+
+      @impl true
+      def cast(value), do: Ecto.Enum.cast(value, params())
+
+      @impl true
+      def load(value), do: Ecto.Enum.load(value, fn v -> {:ok, v} end, params())
+
+      @impl true
+      def dump(value), do: Ecto.Enum.dump(value, fn v -> {:ok, v} end, params())
+
+      @impl true
+      def embed_as(_format), do: :self
+
+      @impl true
+      def equal?(a, b), do: a == b
+    end
+  end
+
+  # note: you cannot give @attributes as opts, sorry. KISS.
+  defmacro def_app_enum(name, opts) do
+    quote do
+      defmodule unquote(name) do
+        use Rivet.Ecto.DefAppEnum, unquote(opts)
+      end
+    end
+  end
+end
