@@ -160,7 +160,7 @@ defmodule Rivet.Ecto.DefEnum do
     # incase kv_enum_ast includes @module attributes.
     module =
       case name do
-        {:__aliases__, _, [_|_] = parts} -> Module.concat([__CALLER__.module | parts])
+        {:__aliases__, _, parts} -> Module.concat([__CALLER__.module | parts])
         other -> Macro.expand(other, __CALLER__)
       end
 
