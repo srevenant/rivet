@@ -155,13 +155,29 @@ defmodule Rivet.Ecto.DefEnum do
   end
 
   # creates a Module inline in the current module
-  defmacro defenum(name, values) do
-    quote bind_quoted: [name: name, values: values] do
-      defmodule unquote(name) do
-        require Rivet.Ecto.DefEnum
-        Rivet.Ecto.DefEnum.defenum_type(unquote(values))
+  defmacro defenum(name, kv_enum_ast) do
+    # jump through hoops so the module and kv_enum_ast are evaluated properly
+    # incase kv_enum_ast includes @module attributes.
+    module =
+      case name do
+        {:__aliases__, _, [_|_] = parts} -> Module.concat([__CALLER__.module | parts])
+        other -> Macro.expand(other, __CALLER__)
       end
+
+    quote do
+      Rivet.Ecto.DefEnum.create_enum!(
+        unquote(module),
+        unquote(kv_enum_ast),
+        __ENV__
+      )
+
+      alias unquote(module)
     end
+  end
+
+  def create_enum!(module, kv_enum, env) do
+    body = enum_body_ast(kv_enum, env)
+    Module.create(module, body, env)
   end
 
   # coveralls-ignore-start
