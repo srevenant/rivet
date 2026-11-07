@@ -16,7 +16,9 @@ defmodule Rivet.Test.Ecto.DefAppEnumTest do
     assert {:ok, 1} = Status.dump(:active)
     assert {:ok, :disabled} = Status.load(2)
 
-    assert {:error, [validation: :inclusion, enum: ["active", "disabled"]]} = Status.cast(:unknown)
+    assert {:error, [validation: :inclusion, enum: ["active", "disabled"]]} =
+             Status.cast(:unknown)
+
     assert :error = Status.dump(:unknown)
     assert :error = Status.load(99)
   end
