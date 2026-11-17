@@ -47,7 +47,9 @@ defmodule Mix.Tasks.Rivet do
           end
 
         try do
-          Module.safe_concat(__MODULE__, Macro.camelize(cmd)).run(args)
+          with_rivet_project(fn ->
+            Module.safe_concat(__MODULE__, Macro.camelize(cmd)).run(args)
+          end)
         rescue
           _ in ArgumentError ->
             list_commands()
@@ -61,6 +63,34 @@ defmodule Mix.Tasks.Rivet do
     Mix.shell().info("Rivet v#{Application.spec(:rivet, :vsn)}")
     Mix.shell().info("A toolkit for managing models in Elixir, working with Ecto.")
     Mix.shell().info(@moduledoc)
+  end
+
+
+  defp with_rivet_project(fun) do
+    Mix.Task.run("app.config", [])
+
+    case Mix.Project.apps_paths() do
+      nil ->
+        fun.()
+
+      paths ->
+        matches =
+          for {app, path} <- paths,
+              Application.ensure_loaded(app) == :ok,
+              Application.get_env(app, :rivet) != nil,
+              do: {app, path}
+
+        case matches do
+          [{app, path}] ->
+            Mix.Project.in_project(app, path, fn _ -> fun.() end)
+
+          [] ->
+            Mix.raise("No umbrella application has Rivet configured")
+
+          _ ->
+            Mix.raise("Multiple Rivet applications found; run from a specific app")
+        end
+    end
   end
 
   # coveralls-ignore-stop

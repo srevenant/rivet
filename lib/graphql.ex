@@ -117,7 +117,7 @@ defmodule Rivet.Graphql do
   def error_string(reason) when is_atom(reason), do: @std_errors[reason] || "#{reason}"
 
   def error_string(unexpected) do
-    Logger.error("unexpected graphql error", error: inspect(unexpected))
+    Logger.error("unexpected error", error: inspect(unexpected))
     "unexpected error, see logs"
   end
 
