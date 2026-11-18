@@ -21,7 +21,10 @@ defmodule Rivet.Migration.Load do
 
   def config_build(opts, app) do
     Application.ensure_loaded(app)
-    Rivet.Migration.Config.build(opts, Application.get_env(app, :rivet, []))
+
+    rivet_conf = Application.get_env(app, :rivet, []) |> Keyword.put_new(:app, app)
+
+    Rivet.Migration.Config.build(opts, rivet_conf)
   end
 
   @doc """

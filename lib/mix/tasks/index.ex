@@ -65,7 +65,6 @@ defmodule Mix.Tasks.Rivet do
     Mix.shell().info(@moduledoc)
   end
 
-
   defp with_rivet_project(fun) do
     Mix.Task.run("app.config", [])
 

@@ -33,19 +33,22 @@ defmodule Rivet.Migration.Config do
 
       app ->
         with {:ok, base_dir} <- getdir(:base_dir, prefs, rivet_conf, "."),
-             {:ok, lib_dir} <- getdir(:lib_dir, prefs, rivet_conf, "lib"),
-             {:ok, test_dir} <- getdir(:test_dir, prefs, rivet_conf, "test"),
-             {:ok, models_dir} <- getdir(:models_dir, prefs, rivet_conf, "#{app}", verify: false),
+             {:ok, lib_dir} <-
+               getdir(:lib_dir, prefs, rivet_conf, "lib", base_dir, verify: false),
+             {:ok, test_dir} <-
+               getdir(:test_dir, prefs, rivet_conf, "test", base_dir, verify: false),
+             {:ok, models_dir} <-
+               getdir(:models_dir, prefs, rivet_conf, "#{app}", nil, verify: false),
              base <- getconf!(:base, prefs, rivet_conf, modulename(models_dir)),
-             {:ok, paths} <- get_roots(base_dir, models_dir, lib_dir, test_dir) do
+             {:ok, paths} <- get_roots(models_dir, lib_dir, test_dir) do
           # partial, we'll do a second pass...
           optsd =
             Map.new(prefs)
             |> Map.merge(%{base_dir, lib_dir, test_dir, models_dir, priv_dir: nil, mig_dir: nil})
 
-          def_priv = Path.join(get_app_dir(optsd, app), "priv")
+          priv_root = Map.get(optsd, :"#{app}_override", base_dir)
 
-          with {:ok, priv_dir} <- getdir(:priv_dir, prefs, rivet_conf, def_priv),
+          with {:ok, priv_dir} <- getdir(:priv_dir, prefs, rivet_conf, "priv", priv_root, verify: false),
                {:ok, mig_dir} <- valid_dir([priv_dir, "rivet/migrations"], "migrations", false) do
             optsd = %{optsd | priv_dir, mig_dir}
 
@@ -53,7 +56,7 @@ defmodule Rivet.Migration.Config do
               Map.drop(optsd, [:base_dir, :lib_dir, :test_dir, :models_dir, :priv_dir, :mig_dir])
 
             {:ok,
-             %{
+              %{
                optsd,
                app,
                base,
@@ -68,9 +71,14 @@ defmodule Rivet.Migration.Config do
   end
 
   # so we can get an empty string not falsey
-  defp getdir(key, prefs, conf, default, opts \\ []) do
-    getconf!(key, prefs, conf, default)
-    |> Path.split()
+  defp getdir(key, prefs, conf, default, root \\ nil, opts \\ []) do
+    path = getconf!(key, prefs, conf, default)
+
+    if root && Path.type(path) == :relative do
+      clean_path([root, path])
+    else
+      path
+    end
     |> valid_dir(key, Keyword.get(opts, :verify, true))
   end
 
@@ -99,8 +107,11 @@ defmodule Rivet.Migration.Config do
     do: clean_path(list) |> valid_dir(key, verify?)
 
   def valid_dir(<<path::binary>>, key, true) do
-    # if File.dir?(path), do: {:ok, path}, else: {:error, "Rivet dir #{key}=#{path} does not exist"}
-    if File.dir?(path), do: {:ok, path}, else: raise("Rivet dir #{key}=#{path} does not exist")
+    if File.dir?(path),
+      do: {:ok, path},
+      else: {:error, "Rivet dir #{key}=#{path} does not exist"}
+
+    # if File.dir?(path), do: {:ok, path}, else: raise("Rivet dir #{key}=#{path} does not exist")
   end
 
   def valid_dir(<<path::binary>>, _, false), do: {:ok, path}
@@ -129,11 +140,11 @@ defmodule Rivet.Migration.Config do
     |> Path.join()
   end
 
-  defp get_roots(b_dir, m_dir, l_dir, t_dir),
+  defp get_roots(models_dir, lib_dir, test_dir),
     do:
       {:ok,
        %{
-         models_root: clean_path([b_dir, l_dir, m_dir]),
-         tests_root: clean_path([b_dir, t_dir, m_dir])
+         models_root: clean_path([lib_dir, models_dir]),
+         tests_root: clean_path([test_dir, models_dir])
        }}
 end

@@ -13,9 +13,10 @@ defmodule Mix.Tasks.Rivet.Init do
   def run(_args) do
     Mix.Task.run("app.config", [])
 
-    cfg = Rivet.Migration.Load.config_build([], Mix.Project.config()[:app])
+    with {:ok, cfg} <- Rivet.Migration.Load.config_build([], Mix.Project.config()[:app]),
+         :ok <- File.mkdir_p(cfg.optsd.mig_dir) do
+      mfile = Rivet.Migration.Config.clean_path([cfg.optsd.mig_dir, @migrations_file])
 
-    with {:ok, mfile} <- Rivet.Migration.Config.clean_path([cfg.optsd.mig_dir, @migrations_file]) do
       create_file(mfile, Templates.empty_list([]))
 
       IO.puts("""
@@ -24,6 +25,8 @@ defmodule Mix.Tasks.Rivet.Init do
 
          mix rivet.new model {name}
       """)
+    else
+      {:error, reason} -> Mix.raise("Rivet initialization failed: #{inspect(reason)}")
     end
   end
 

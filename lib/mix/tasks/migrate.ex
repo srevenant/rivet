@@ -51,23 +51,13 @@ defmodule Mix.Tasks.Rivet.Migrate do
     Mix.Task.run("app.config", [])
     migrator = &Ecto.Migrator.run/4
 
-    app =
-      case Application.get_env(:rivet, :app) do
-        nil ->
-          Mix.raise("""
-          Could not find app; is this run from an umbrella? Rivet migrate must run
-          from within it's defined project. Try: mix cmd --app {app} mix rivet migrate
-          """)
+    app = Mix.Project.config()[:app] || Mix.raise("Unable to determine Rivet application")
+    {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: [])
 
-        pass ->
-          pass
-      end
-
-    case Rivet.Migration.Load.prepare_project_migrations(args, app) do
+    case Rivet.Migration.Load.prepare_project_migrations(opts, app) do
       {:ok, rivet_migs} ->
         with {:ok, migs} <- Rivet.Migration.Load.to_ecto_migrations(rivet_migs) do
           repos = parse_repo(args)
-          {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: [])
 
           opts = Keyword.merge(@defaults, opts)
 
