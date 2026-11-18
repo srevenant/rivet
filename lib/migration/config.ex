@@ -48,7 +48,8 @@ defmodule Rivet.Migration.Config do
 
           priv_root = Map.get(optsd, :"#{app}_override", base_dir)
 
-          with {:ok, priv_dir} <- getdir(:priv_dir, prefs, rivet_conf, "priv", priv_root, verify: false),
+          with {:ok, priv_dir} <-
+                 getdir(:priv_dir, prefs, rivet_conf, "priv", priv_root, verify: false),
                {:ok, mig_dir} <- valid_dir([priv_dir, "rivet/migrations"], "migrations", false) do
             optsd = %{optsd | priv_dir, mig_dir}
 
@@ -56,7 +57,7 @@ defmodule Rivet.Migration.Config do
               Map.drop(optsd, [:base_dir, :lib_dir, :test_dir, :models_dir, :priv_dir, :mig_dir])
 
             {:ok,
-              %{
+             %{
                optsd,
                app,
                base,

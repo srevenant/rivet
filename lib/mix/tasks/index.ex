@@ -47,8 +47,9 @@ defmodule Mix.Tasks.Rivet do
           end
 
         module = Module.safe_concat(__MODULE__, Macro.camelize(cmd))
+
         try do
-          with_rivet_project(fn -> .run(args) end)
+          with_rivet_project(fn -> module.run(args) end)
         rescue
           _ in ArgumentError ->
             list_commands()
