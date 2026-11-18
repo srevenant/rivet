@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Rivet.Init do
 
       Create your first model with:
 
-         mix rivet.new model {name}
+         mix rivet new model {name}
       """)
     else
       {:error, reason} -> Mix.raise("Rivet initialization failed: #{inspect(reason)}")
